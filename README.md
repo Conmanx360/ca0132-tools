@@ -1,13 +1,37 @@
 # ca0132-tools
 A collection of tools for debugging the ca0132 HDA codec. Also included is an assembler/disassembler for the onboard "Quartet" DSP.
 
+Most of the tools are self explanatory, however the more unique ones are
+described below. As always, be careful with these, as you can lock up the
+DSP or the 8051 if you mess with the wrong things.
+
+## ca0132-dsp-op-test:
+Assembles a register dumping program, and takes a hexadecimal opcode. Runs the opcode
+you entered, and then prints out the difference between the register dump before/after
+the opcode was run.
+
+Once this program has been run, you'll have to either do a suspend/resume cycle to restore
+the DSP, or a full shutdown and startup.
+
+## ca0132-dsp-disassembler:
+Disassembles a binary file containing DSP opcodes.
+
+DISCLAIMER: DO NOT USE THIS ON THE DSP FIRMWARE. Only use it on programs
+you've made yourself using the included assembler.
+
+## ca0132-dsp-assembler:
+Assembles a DSP assembly string into a DSP opcode. Without arguments,
+it takes a single string as input and outputs the hexadecimal opcode.
+
+This is a really basic assembler, I plan on adding more documentation soon.
+
 ## ca0132-dump-state
 Create a simulator state by dumping the contents of a running ca0132.
-Then, you can enter the main loop and simulate from there. Uses an unused
-ChipIO ParamID handler to run the dumping program.
+Uploads a custom dumping program to the onboard 8051 to dump the memory,
+using an unused ChipIO ParamID verb handler. The created save state can then
+be used in the ca0132 simulator for testing verbs.
 
 ## ca0132-8051-command-line
-
 Allows use of the onboard 8051's serial command console by storing commands
 in the buffer and updating the write pointer.
 
