@@ -3054,24 +3054,28 @@ static void create_op_words(dsp_asm_data *data, uint32_t *op_words)
 	const operand_loc_descriptor *loc_descriptors;
 	const op_operand_loc_layout *loc_layout;
 	const operand_loc_descriptor *tmp_desc;
-	const dsp_op_info *op_info, *p_op_info;
+	dsp_asm_op_data *op, *p_op;
 
-	op_info = data->op.op_info;
-	p_op_info = data->p_op.op_info;
-	len = get_dsp_op_len(op_info->op);
-	src_dst_swap = op_info->src_dst_swap;
-	loc_layout = data->op.loc_layout;
+	op = &data->op;
+	if (data->has_p_op)
+		p_op = &data->p_op;
+	else
+		p_op = NULL;
+
+	len = get_dsp_op_len(op->opcode);
+	src_dst_swap = op->src_dst_swap;
+	loc_layout = op->loc_layout;
 
 	memset(buf, 0, sizeof(buf));
-	buf[0] = (op_info->op << 16);
-	if (data->op.use_op_mdfr_bit) {
-		set_bits_in_op_words(buf, op_info->mdfr_bit, 1, 1);
-		if (op_info->mdfr_bit_type == OP_MDFR_BIT_TYPE_SRC_DST_SWAP)
+	buf[0] = (op->opcode << 16);
+	if (op->use_op_mdfr_bit) {
+		set_bits_in_op_words(buf, op->mdfr_bit, 1, 1);
+		if (op->mdfr_bit_type == OP_MDFR_BIT_TYPE_SRC_DST_SWAP)
 			src_dst_swap = 1;
 	}
 
 
-	if ((loc_layout) && !p_op_info && loc_layout->supports_opt_args) {
+	if ((loc_layout) && !p_op && loc_layout->supports_opt_args) {
 		if (len == 2) {
 			buf[0] |= 0x7fff;
 			buf[1] |= 0x01c00000;
@@ -3106,9 +3110,6 @@ static void create_op_words(dsp_asm_data *data, uint32_t *op_words)
 				tmp_desc = &loc_descriptors[i];
 			}
 
-			if (op_info->src_mdfr[0] > OPERAND_MDFR_HINT_START)
-				data->op.operands[i].mdfr = op_info->src_mdfr[0];
-
 			set_op_operand(buf, tmp_desc, &data->op.operands[i]);
 		}
 	}
@@ -3118,16 +3119,16 @@ static void create_op_words(dsp_asm_data *data, uint32_t *op_words)
 	 * into a single function.
 	 */
 	src_dst_swap = 0;
-	if (p_op_info) {
-		buf[0] |= (p_op_info->op << 9);
+	if (p_op) {
+		buf[0] |= (p_op->opcode << 9);
 		loc_layout = data->p_op.loc_layout;
 		operand_cnt = loc_layout->operand_cnt;
 		loc_descriptors = loc_layout->operand_loc;
-		src_dst_swap = p_op_info->src_dst_swap;
+		src_dst_swap = p_op->src_dst_swap;
 
 		if (data->p_op.use_op_mdfr_bit) {
-			set_bits_in_op_words(buf, p_op_info->mdfr_bit, 1, 1);
-			if (p_op_info->mdfr_bit_type == OP_MDFR_BIT_TYPE_SRC_DST_SWAP)
+			set_bits_in_op_words(buf, p_op->mdfr_bit, 1, 1);
+			if (p_op->mdfr_bit_type == OP_MDFR_BIT_TYPE_SRC_DST_SWAP)
 				src_dst_swap = 1;
 		}
 
@@ -3674,6 +3675,7 @@ static uint32_t check_operand_compatibility(dsp_asm_op_data *op_data,
 		if (operand->type != OPERAND_TYPE_LITERAL)
 			break;
 
+		operand->mdfr = 0;
 		/*
 		 * If both values aren't the same, 16-bit literals won't work.
 		 * Only 32-bit literal instructions allow two different
@@ -3704,6 +3706,9 @@ static uint32_t check_operand_compatibility(dsp_asm_op_data *op_data,
 
 			break;
 		}
+
+		if (ret)
+			operand->mdfr = src_mdfr;
 
 		break;
 
@@ -4003,6 +4008,15 @@ static const dsp_op_info *find_compatible_p_op_info(dsp_asm_data *data,
 	return NULL;
 }
 
+static void set_asm_op_data_from_op_info(dsp_asm_op_data *data, const dsp_op_info *op_info)
+{
+	data->opcode = op_info->op;
+	data->src_dst_swap = op_info->src_dst_swap;
+	data->mdfr_bit = op_info->mdfr_bit;
+	data->mdfr_bit_type = op_info->mdfr_bit_type;
+	data->matched = 1;
+}
+
 /*
  * Search all asm ops until we find one that matches our given assembly info.
  */
@@ -4028,10 +4042,10 @@ static void find_compatible_asm_opcode(dsp_asm_data *data)
 		op_info = find_compatible_op_info(data, op_info);
 	}
 
-	if (op_info) {
-		data->op.op_info = op_info;
-		data->p_op.op_info = p_op_info;
-	}
+	if (op_info)
+		set_asm_op_data_from_op_info(&data->op, op_info);
+	if (p_op_info)
+		set_asm_op_data_from_op_info(&data->p_op, p_op_info);
 }
 
 /*
@@ -4458,7 +4472,7 @@ void get_asm_data_from_str(dsp_asm_data *data, char *asm_str)
 	find_compatible_asm_opcode(data);
 
 	/* Found a valid op_info struct, create op. */
-	if (data->op.op_info)
+	if (data->op.matched)
 		create_op_words(data, buf);
 
 	/* Free tokens. */

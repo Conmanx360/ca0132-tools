@@ -736,7 +736,7 @@ typedef struct {
 } dsp_asm_op_operand;
 
 typedef struct {
-	const dsp_op_info *op_info;
+	uint32_t opcode;
 	char *op_str;
 
 	uint32_t parallel_split_operand;
@@ -744,9 +744,15 @@ typedef struct {
 	uint32_t operand_cnt;
 
 	const op_operand_loc_layout *loc_layout;
+	uint8_t matched;
 
 	uint8_t use_op_mdfr_bit;
+	uint32_t mdfr_bit_type;
+	uint32_t mdfr_bit;
+
 	uint32_t src_mdfr;
+	uint8_t src_dst_swap;
+
 	uint8_t needs_alt_args;
 } dsp_asm_op_data;
 
