@@ -2853,7 +2853,7 @@ static void asm_op_operand_val_fixup(const operand_loc_descriptor *loc,
 
 	case OP_OPERAND_REG_2_T2:
 		/* Base is 4, so if we're below that, set bit 1. */
-		if (operand->val < 4)
+		if ((operand->val & 0xff) < 4)
 			operand->val = 0x02 + (operand->val & 0x01);
 		else
 			operand->val &= 0x01;
@@ -2862,7 +2862,7 @@ static void asm_op_operand_val_fixup(const operand_loc_descriptor *loc,
 
 	case OP_OPERAND_REG_3_X_T1:
 		/* Base is 4, so if we're below this, need to set MSB. */
-		if (operand->val < 4)
+		if ((operand->val & 0xff) < 4)
 			operand->val = 0x04 + (operand->val & 0x03);
 		else
 			operand->val &= 0x03;
@@ -2870,8 +2870,8 @@ static void asm_op_operand_val_fixup(const operand_loc_descriptor *loc,
 		break;
 
 	case OP_OPERAND_REG_3_Y_T1:
-		if (operand->val < 12)
-			tmp = operand->val;
+		if ((operand->val & 0xff) < 12)
+			tmp = operand->val & 0xff;
 		else
 			tmp = 6 + (operand->val & 0x01);
 
@@ -2880,7 +2880,7 @@ static void asm_op_operand_val_fixup(const operand_loc_descriptor *loc,
 
 	case OP_OPERAND_REG_3_X_T2:
 		/* Base is 12, so if we're below this, need to set MSB. */
-		if (operand->val < 12)
+		if ((operand->val & 0xff) < 12)
 			tmp = 0x04 + (operand->val & 0x03);
 		else
 			tmp = (operand->val & 0x03);
@@ -2893,7 +2893,7 @@ static void asm_op_operand_val_fixup(const operand_loc_descriptor *loc,
 		 * Registers 12/13 are 0x06/0x07, 4/5 are just 0x04/0x05, and
 		 * 8-11 are 0x00-0x03.
 		 */
-		if (operand->val > 11)
+		if ((operand->val & 0xff) > 11)
 			operand->val = (6 + operand->val) & 0x01;
 		else if (operand->val > 5)
 			operand->val &= 0x03;
@@ -2901,13 +2901,13 @@ static void asm_op_operand_val_fixup(const operand_loc_descriptor *loc,
 		break;
 
 	case OP_OPERAND_REG_3_FMA_X_T1:
-		if (operand->val > 7)
+		if ((operand->val & 0xff) > 7)
 			operand->val = 6 + (operand->val & 0x01);
 
 		break;
 
 	case OP_OPERAND_REG_3_FMA_X_T2:
-		if (operand->val < 2)
+		if ((operand->val & 0xff) < 2)
 			operand->val = 6 + (operand->val & 0x01);
 		else
 			operand->val -= 8;
@@ -2915,7 +2915,7 @@ static void asm_op_operand_val_fixup(const operand_loc_descriptor *loc,
 		break;
 
 	case OP_OPERAND_REG_3_FMA_A_T1:
-		if (operand->val > 11)
+		if ((operand->val & 0xff) > 11)
 			operand->val = 4 + (operand->val & 0x03);
 		else
 			operand->val &= 0x03;
@@ -2941,7 +2941,7 @@ static void asm_op_operand_val_fixup(const operand_loc_descriptor *loc,
 		break;
 
 	case OP_OPERAND_REG_3_ACC:
-		if (operand->val < 12)
+		if ((operand->val & 0xff) < 12)
 			operand->val = 4 + (operand->val & 0x03);
 		else
 			operand->val &= 0x03;
@@ -3176,21 +3176,30 @@ static uint32_t check_operand_compatibility(dsp_asm_op_data *op_data,
 		uint8_t src_mdfr)
 {
 	dsp_asm_op_operand *tmp_op;
-	uint32_t tmp0, ret;
+	uint32_t tmp0, reg_val, ret;
 	int32_t i_tmp;
 
-	ret = 0;
+	ret = reg_val = 0;
 	/* Easy early exit. */
 	if ((operand->type == OPERAND_TYPE_REG)
 			&& (info->operand_type > OP_OPERAND_REG_TYPE_END))
 		return ret;
+
+	/*
+	 * Register values are always represented as their 11-bit version, but
+	 * in these comparsions, since we already know what the upper 3 bits
+	 * are, use just the register value. Keep the XGPRAM/YGPRAM bits
+	 * though, if they're set.
+	 */
+	if (operand->type == OPERAND_TYPE_REG)
+		reg_val = operand->val & 0xcff;
 
 	switch (info->operand_type) {
 	case OP_OPERAND_REG_2:
 		if (operand->type != OPERAND_TYPE_REG)
 			break;
 
-		if (operand->val < 4)
+		if (reg_val < 4)
 			ret = 1;
 
 		break;
@@ -3199,7 +3208,7 @@ static uint32_t check_operand_compatibility(dsp_asm_op_data *op_data,
 		if (operand->type != OPERAND_TYPE_REG)
 			break;
 
-		if ((operand->val > 3) && (operand->val < 8))
+		if ((reg_val > 3) && (reg_val < 8))
 			ret = 1;
 
 		break;
@@ -3208,7 +3217,7 @@ static uint32_t check_operand_compatibility(dsp_asm_op_data *op_data,
 		if (operand->type != OPERAND_TYPE_REG)
 			break;
 
-		if ((operand->val > 7) && (operand->val < 12))
+		if ((reg_val > 7) && (reg_val < 12))
 			ret = 1;
 
 		break;
@@ -3217,7 +3226,7 @@ static uint32_t check_operand_compatibility(dsp_asm_op_data *op_data,
 		if (operand->type != OPERAND_TYPE_REG)
 			break;
 
-		if ((operand->val > 11) && (operand->val < 16))
+		if ((reg_val > 11) && (reg_val < 16))
 			ret = 1;
 
 		break;
@@ -3226,7 +3235,7 @@ static uint32_t check_operand_compatibility(dsp_asm_op_data *op_data,
 		if (operand->type != OPERAND_TYPE_REG)
 			break;
 
-		switch (operand->val) {
+		switch (reg_val) {
 		case 12:
 		case 13:
 		case 8:
@@ -3243,7 +3252,7 @@ static uint32_t check_operand_compatibility(dsp_asm_op_data *op_data,
 		if (operand->type != OPERAND_TYPE_REG)
 			break;
 
-		switch (operand->val) {
+		switch (reg_val) {
 		case 4:
 		case 5:
 		case 0:
@@ -3260,7 +3269,7 @@ static uint32_t check_operand_compatibility(dsp_asm_op_data *op_data,
 		if (operand->type != OPERAND_TYPE_REG)
 			break;
 
-		if (operand->val < 8)
+		if (reg_val < 8)
 			ret = 1;
 
 		break;
@@ -3269,7 +3278,7 @@ static uint32_t check_operand_compatibility(dsp_asm_op_data *op_data,
 		if (operand->type != OPERAND_TYPE_REG)
 			break;
 
-		switch (operand->val) {
+		switch (reg_val) {
 		case 0  ... 5:
 		case 12 ... 13:
 			ret = 1;
@@ -3285,7 +3294,7 @@ static uint32_t check_operand_compatibility(dsp_asm_op_data *op_data,
 		if (operand->type != OPERAND_TYPE_REG)
 			break;
 
-		if ((operand->val & 0x08) && (operand->val < 16))
+		if ((reg_val & 0x08) && (reg_val < 16))
 			ret = 1;
 
 		break;
@@ -3294,7 +3303,7 @@ static uint32_t check_operand_compatibility(dsp_asm_op_data *op_data,
 		if (operand->type != OPERAND_TYPE_REG)
 			break;
 
-		switch (operand->val) {
+		switch (reg_val) {
 		case  4 ...  5:
 		case  8 ... 11:
 		case 12 ... 13:
@@ -3311,7 +3320,7 @@ static uint32_t check_operand_compatibility(dsp_asm_op_data *op_data,
 		if (operand->type != OPERAND_TYPE_REG)
 			break;
 
-		switch (operand->val) {
+		switch (reg_val) {
 		case  4 ...  7:
 		case 12 ... 15:
 			ret = 1;
@@ -3327,7 +3336,7 @@ static uint32_t check_operand_compatibility(dsp_asm_op_data *op_data,
 		if (operand->type != OPERAND_TYPE_REG)
 			break;
 
-		if (operand->val < 5)
+		if (reg_val < 5)
 			ret = 1;
 
 		break;
@@ -3336,7 +3345,7 @@ static uint32_t check_operand_compatibility(dsp_asm_op_data *op_data,
 		if (operand->type != OPERAND_TYPE_REG)
 			break;
 
-		switch (operand->val) {
+		switch (reg_val) {
 		case 0 ... 5:
 		case 8 ... 9:
 			ret = 1;
@@ -3352,7 +3361,7 @@ static uint32_t check_operand_compatibility(dsp_asm_op_data *op_data,
 		if (operand->type != OPERAND_TYPE_REG)
 			break;
 
-		if ((operand->val & 0x08) && (operand->val < 13))
+		if ((reg_val & 0x08) && (reg_val < 13))
 			ret = 1;
 
 		break;
@@ -3361,7 +3370,7 @@ static uint32_t check_operand_compatibility(dsp_asm_op_data *op_data,
 		if (operand->type != OPERAND_TYPE_REG)
 			break;
 
-		switch (operand->val) {
+		switch (reg_val) {
 		case 0 ...  1:
 		case 8 ... 13:
 			ret = 1;
@@ -3377,7 +3386,7 @@ static uint32_t check_operand_compatibility(dsp_asm_op_data *op_data,
 		if (operand->type != OPERAND_TYPE_REG)
 			break;
 
-		switch (operand->val) {
+		switch (reg_val) {
 		case 4  ...  7:
 		case 12 ... 15:
 			ret = 1;
@@ -3393,7 +3402,7 @@ static uint32_t check_operand_compatibility(dsp_asm_op_data *op_data,
 		if (operand->type != OPERAND_TYPE_REG)
 			break;
 
-		switch (operand->val) {
+		switch (reg_val) {
 		case  0 ...  1:
 		case  4 ...  5:
 		case  8 ...  9:
@@ -3411,7 +3420,7 @@ static uint32_t check_operand_compatibility(dsp_asm_op_data *op_data,
 		if (operand->type != OPERAND_TYPE_REG)
 			break;
 
-		if ((operand->val & 0xcff) < 0x08)
+		if (reg_val < 0x08)
 			ret = 1;
 
 		break;
@@ -3420,7 +3429,7 @@ static uint32_t check_operand_compatibility(dsp_asm_op_data *op_data,
 		if (operand->type != OPERAND_TYPE_REG)
 			break;
 
-		if ((operand->val & 0xcff) < 0x10)
+		if (reg_val < 0x10)
 			ret = 1;
 
 		break;
@@ -3429,7 +3438,7 @@ static uint32_t check_operand_compatibility(dsp_asm_op_data *op_data,
 		if (operand->type != OPERAND_TYPE_REG)
 			break;
 
-		if ((operand->val & 0xcff) < 0x20)
+		if (reg_val < 0x20)
 			ret = 1;
 
 		break;
@@ -3438,7 +3447,7 @@ static uint32_t check_operand_compatibility(dsp_asm_op_data *op_data,
 		if (operand->type != OPERAND_TYPE_REG)
 			break;
 
-		if ((operand->val & 0xcff) < 0x80)
+		if (reg_val < 0x80)
 			ret = 1;
 
 		break;
@@ -3447,8 +3456,7 @@ static uint32_t check_operand_compatibility(dsp_asm_op_data *op_data,
 		if (operand->type != OPERAND_TYPE_REG)
 			break;
 
-		if (((operand->val & 0xcff) < 0x10)
-				&& ((operand->val & 0xcff) > 0x07))
+		if ((reg_val < 0x10) && (reg_val > 0x07))
 			ret = 1;
 
 		break;
@@ -3457,7 +3465,7 @@ static uint32_t check_operand_compatibility(dsp_asm_op_data *op_data,
 		if (operand->type != OPERAND_TYPE_REG)
 			break;
 
-		if ((operand->val & 0xcff) < 0x100)
+		if (reg_val < 0x100)
 			ret = 1;
 
 		break;
@@ -3489,7 +3497,7 @@ static uint32_t check_operand_compatibility(dsp_asm_op_data *op_data,
 		tmp_op = &op_data->operands[tmp0];
 
 		/* If the upper 3 bits match, this will work. */
-		if ((tmp_op->val & 0x700) == (operand->val & 0x700))
+		if ((operand->val & 0x700) == (tmp_op->val & 0x700))
 			ret = 1;
 
 		break;
