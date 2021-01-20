@@ -4288,6 +4288,212 @@ static uint32_t get_operand_val_from_token(dsp_asm_op_operand *operand)
 	return 0;
 }
 
+static const char *parallel_operand_layout_id_str[] = {
+	"P_OP_LAYOUT_MOV_2",
+	"P_OP_LAYOUT_MOVX_2",
+	"P_OP_LAYOUT_MOVX_DUAL_READ_2",
+	"P_OP_LAYOUT_MOVX_DUAL_WRITE_2",
+	"P_OP_LAYOUT_EXECUTE_COND_2",
+	"P_OP_LAYOUT_MOV_4",
+	"P_OP_LAYOUT_MOV_DUAL_4",
+	"P_OP_LAYOUT_MOVX_4",
+	"P_OP_LAYOUT_MOVX_DUAL_4",
+	"P_OP_LAYOUT_MOVX_READ_X_WRITE_Y_4",
+	"P_OP_LAYOUT_EXECUTE_COND_4",
+};
+
+static uint32_t get_p_op_layout_id_from_str(char *layout_str, uint32_t *layout_id)
+{
+	const char *tmp;
+	uint32_t i;
+
+	for (i = 0; i < ARRAY_SIZE(parallel_operand_layout_id_str); i++) {
+		tmp = parallel_operand_layout_id_str[i];
+		if (!strcmp(layout_str, &tmp[12])) {
+			*layout_id = i;
+
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
+static const char *operand_layout_id_str[] = {
+	"OP_LAYOUT_MOV_1",
+	"OP_LAYOUT_MOVX_1",
+	"OP_LAYOUT_R_X_Y_1",
+	"OP_LAYOUT_R_X_Y_A_1",
+	"OP_LAYOUT_R_X_LIT_8_Y_1",
+	"OP_LAYOUT_PC_OFFSET_1",
+	"OP_LAYOUT_LOOP_PC_OFFSET_REG_CNT_1",
+	"OP_LAYOUT_LOOP_PC_OFFSET_LIT_8_CNT_1",
+	"OP_LAYOUT_PC_SET_REG_1",
+	"OP_LAYOUT_MOV_2",
+	"OP_LAYOUT_MOVX_2",
+	"OP_LAYOUT_R_X_Y_2",
+	"OP_LAYOUT_R_X_Y_A_2",
+	"OP_LAYOUT_MOV_LIT_16_2",
+	"OP_LAYOUT_R_X_LIT_16_Y_2",
+	"OP_LAYOUT_PC_LIT_16_2",
+	"OP_LAYOUT_LOOP_PC_LIT_16_2",
+	"OP_LAYOUT_STACK_UNK_2",
+	"OP_LAYOUT_MOV_4",
+	"OP_LAYOUT_R_X_Y_4",
+	"OP_LAYOUT_R_X_Y_A_4",
+	"OP_LAYOUT_MOV_LIT_32_4",
+	"OP_LAYOUT_R_X_LIT_32_Y_4",
+	"OP_LAYOUT_NOP",
+};
+
+static uint32_t get_op_layout_id_from_str(char *layout_str, uint32_t *layout_id)
+{
+	const char *tmp;
+	uint32_t i;
+
+	for (i = 0; i < ARRAY_SIZE(operand_layout_id_str); i++) {
+		tmp = operand_layout_id_str[i];
+		if (!strcmp(layout_str, &tmp[10])) {
+			*layout_id = i;
+
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
+/*
+ * Format is:
+ * OP_0x164.1:MOV_2 R00, R04;
+ * Where:
+ * OP_ prefix indicates we're going to specify a specific opcode.
+ * ".1" suffix signifies to set the mdfr bit.
+ * ":" signifies that we're going to select a specific operand layout.
+ *
+ * Operand layouts should omit the OP_LAYOUT prefix present in the enum name.
+ * For parallel ops, the only difference is that the prefix is P_OP.
+ *
+ * If an operand layout is not specified, the op_info structure associated
+ * with the opcode will be used to find the layout. If there isn't an op_info
+ * structure, this will fail.
+ *
+ * Main usage for this is testing unknown opcodes.
+ */
+static uint32_t get_asm_opcode_data_from_op_str(char *asm_op_str, uint32_t *opcode,
+		uint32_t *layout_id, uint32_t *layout_set, uint8_t *mdfr_bit,
+		uint8_t is_p_op)
+{
+	char *end_ptr;
+	uint32_t ret;
+
+	*layout_set = *mdfr_bit = 0;
+
+	/* Get the specified opcode. */
+	*opcode = strtol(&asm_op_str[3], &end_ptr, 16);
+
+	/* Check if the mdfr_bit is specified as set/unset. */
+	if (*end_ptr == '.')
+		*mdfr_bit = strtol(end_ptr + 1, &end_ptr, 0);
+
+	/* Check if a layout is specified. */
+	if (*end_ptr == ':') {
+		if (is_p_op)
+			ret = get_p_op_layout_id_from_str(end_ptr + 1, layout_id);
+		else
+			ret = get_op_layout_id_from_str(end_ptr + 1, layout_id);
+
+		if (!ret) {
+			printf("Invalid layout id %s.\n", end_ptr + 1);
+			return 0;
+		}
+
+		*layout_set = 1;
+	}
+
+	return 1;
+}
+
+static void extract_opcode_from_spec_op_str(dsp_asm_data *data)
+{
+	uint32_t layout_id, layout_set, i;
+	const op_operand_layout *layout;
+	dsp_asm_op_data *op, *p_op;
+	const dsp_op_info *info;
+
+	op = &data->op;
+	p_op = &data->p_op;
+	if (!get_asm_opcode_data_from_op_str(op->op_str, &op->opcode,
+			&layout_id, &layout_set, &op->use_op_mdfr_bit, 0))
+		return;
+
+	/*
+	 * If a layout wasn't specified, we'll have to find one from an
+	 * existing op_info structure, if it exists.
+	 */
+	if (!layout_set) {
+		info = get_dsp_op_info(op->opcode);
+		if (!info) {
+			printf("No layout specified, and no op info structure. Aborting.\n");
+			return;
+		}
+
+		if (check_op_layout_compatibility(info, op, 0))
+			set_asm_op_data_from_op_info(op, info);
+	} else {
+		if (op->use_op_mdfr_bit && layout_set)
+			op->mdfr_bit = 9;
+
+		layout = get_op_layout(layout_id);
+		/* Try with and without src_dst swap. */
+		for (i = 0; i < 2; i++) {
+			if (check_op_layout_operand_compatibility(layout, op, i, 0)) {
+				op->matched = 1;
+				op->src_dst_swap = i;
+				break;
+			}
+		}
+	}
+
+	/* Next, if we have a p_op, find a compatible one. */
+	if (data->has_p_op) {
+		if (strncmp(p_op->op_str, "P_OP_0x", 7)) {
+			info = NULL;
+			info = find_compatible_p_op_info(data, info,
+					get_dsp_op_len(op->opcode));
+			if (info)
+				set_asm_op_data_from_op_info(p_op, info);
+
+			return;
+		}
+
+		/*
+		 * Add 2 to the pointer to get past the extra "P_" prefix on
+		 * parallel ops.
+		 */
+		if (!get_asm_opcode_data_from_op_str(p_op->op_str + 2, &p_op->opcode,
+			&layout_id, &layout_set, &p_op->use_op_mdfr_bit, 1))
+			return;
+
+		/*
+		 * Should be careful with this. The alt mdfr bit on parallel
+		 * opcodes is different per opcode.
+		 */
+		if (p_op->use_op_mdfr_bit && layout_set)
+			p_op->mdfr_bit = 7;
+
+		layout = get_p_op_layout(layout_id);
+		/* Try with and without src_dst swap. */
+		for (i = 0; i < 2; i++) {
+			if (check_op_layout_operand_compatibility(layout, p_op, i, 0)) {
+				p_op->matched = 1;
+				p_op->src_dst_swap = i;
+				break;
+			}
+		}
+	}
+}
+
 /*
  * Add an operand from the data currently gathered from the tokens.
  */
@@ -4468,8 +4674,15 @@ void get_asm_data_from_str(dsp_asm_data *data, char *asm_str)
 
 	get_opcode_data_from_tokens(&data->op, t_start, tokens.token_cnt, &tokens);
 
-	/* Try to find an opcode that is compatible with this asm string. */
-	find_compatible_asm_opcode(data);
+	/*
+	 * If the op string starts with "OP_0x", then the op has been
+	 * explicitly defined in the assembly string. Otherwise, search the
+	 * op_info structure and attempt to find a match to the op string.
+	 */
+	if (!strncmp(data->op.op_str, "OP_0x", 4))
+		extract_opcode_from_spec_op_str(data);
+	else
+		find_compatible_asm_opcode(data);
 
 	/* Found a valid op_info struct, create op. */
 	if (data->op.matched)

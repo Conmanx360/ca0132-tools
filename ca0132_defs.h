@@ -603,6 +603,9 @@ enum operand_token_type {
 /*
  * Bit layout ID enums.
  * Postfixes are the length of the op they are used by.
+ *
+ * Don't forget to update their respective strings in ca0132_dsp_functions.c
+ * when adding new layouts.
  */
 enum parallel_operand_layout_id {
 	P_OP_LAYOUT_MOV_2,
