@@ -783,6 +783,6 @@ const dsp_op_info *find_dsp_asm_op(dsp_asm_data *data, const dsp_op_info *start)
 const dsp_op_info *find_dsp_asm_p_op(dsp_asm_data *data, const dsp_op_info *start,
 		uint32_t op_len);
 uint32_t get_dsp_op_len(uint32_t op);
-void get_asm_data_from_str(dsp_asm_data *data, char *asm_str);
+uint8_t get_asm_data_from_str(dsp_asm_data *data, char *asm_str);
 uint32_t get_bits_in_op_words(uint32_t *op_words, uint32_t start,
 		uint32_t len);

@@ -36,6 +36,7 @@ static int read_assembly_from_file(char *asm_file_name, char *data_file_name)
 	FILE *asm_file, *data_file;
 	dsp_asm_data data;
 	char buf[0x200];
+	int ret = 0;
 
 	asm_file = fopen(asm_file_name, "r");
 	if (!asm_file) {
@@ -53,7 +54,12 @@ static int read_assembly_from_file(char *asm_file_name, char *data_file_name)
 	memset(&data, 0, sizeof(data));
 	memset(buf, 0, sizeof(buf));
 	while (get_next_asm_op_str(asm_file, data_file, buf)) {
-		get_asm_data_from_str(&data, buf);
+		if (!get_asm_data_from_str(&data, buf)) {
+			printf("Invalid asm op: %s.\n", buf);
+			ret = 1;
+			goto exit;
+		}
+
 		fwrite(data.opcode, sizeof(data.opcode[0]),
 				get_dsp_op_len(data.opcode[0] >> 16), data_file);
 
@@ -61,10 +67,11 @@ static int read_assembly_from_file(char *asm_file_name, char *data_file_name)
 		memset(buf, 0, sizeof(buf));
 	}
 
+exit:
 	fclose(data_file);
 	fclose(asm_file);
 
-	return 0;
+	return ret;
 }
 
 static int read_assembly_from_terminal()
@@ -85,7 +92,10 @@ static int read_assembly_from_terminal()
 		i++;
 	}
 
-	get_asm_data_from_str(&data, buf);
+	if (!get_asm_data_from_str(&data, buf)) {
+		printf("Failed to get asm data.\n");
+		return 1;
+	}
 
 	printf("Op %s: ", data.op.op_str);
 	for (i = 0; i < 4; i++)

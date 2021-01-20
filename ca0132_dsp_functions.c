@@ -4497,10 +4497,9 @@ static void extract_opcode_from_spec_op_str(dsp_asm_data *data)
 /*
  * Add an operand from the data currently gathered from the tokens.
  */
-static void finalize_operand(dsp_asm_op_data *op, dsp_asm_op_operand *operand,
+static uint8_t finalize_operand(dsp_asm_op_data *op, dsp_asm_op_operand *operand,
 		char *buf, uint32_t buf_size, uint32_t cur_operand_cnt)
 {
-
 	if (operand->mdfr) {
 		remove_mdfr_from_str(operand->mdfr, buf);
 		op->src_mdfr = operand->mdfr;
@@ -4509,17 +4508,23 @@ static void finalize_operand(dsp_asm_op_data *op, dsp_asm_op_operand *operand,
 	operand->operand_str = strdup(buf);
 	operand->operand_num = cur_operand_cnt;
 
-	get_operand_val_from_token(operand);
+	if (!get_operand_val_from_token(operand)) {
+		printf("Unidentified operand, '%s'. Aborting.\n", operand->operand_str);
+		return 0;
+	}
+
 	op->operand_cnt++;
 
 	memset(buf, 0, buf_size);
+
+	return 1;
 }
 
 /*
  * Sort and identify the opcode info from the given assembly tokens, get the
  * op string, operand values/modifiers, and potential parallel ops as well.
  */
-static void get_opcode_data_from_tokens(dsp_asm_op_data *op, uint32_t t_start,
+static uint8_t get_opcode_data_from_tokens(dsp_asm_op_data *op, uint32_t t_start,
 		uint32_t t_end, dsp_asm_str_tokens *tokens)
 {
 	uint32_t operand_start, cur_operand_cnt, i;
@@ -4574,17 +4579,22 @@ static void get_opcode_data_from_tokens(dsp_asm_op_data *op, uint32_t t_start,
 		append_str_to_operand_str(buf, tokens->token[i]);
 
 		if (get_final_str_char(tokens->token[i]) == ',') {
-			finalize_operand(op, cur_operand, buf, sizeof(buf),
-					cur_operand_cnt);
+			if (!finalize_operand(op, cur_operand, buf, sizeof(buf),
+					cur_operand_cnt))
+				return 0;
+
 			cur_operand_cnt++;
 		}
 	}
 
 	/* If there's characters in the buffer, add the final operand. */
 	if (strlen(buf)) {
-		finalize_operand(op, cur_operand, buf, sizeof(buf),
-				cur_operand_cnt);
+		if (!finalize_operand(op, cur_operand, buf, sizeof(buf),
+				cur_operand_cnt))
+			return 0;
 	}
+
+	return 1;
 }
 
 /* Remove comments from the passed in assembly string. */
@@ -4659,10 +4669,11 @@ static void tokenize_asm_str(char *asm_str, dsp_asm_str_tokens *tokens)
 	free(buf);
 }
 
-void get_asm_data_from_str(dsp_asm_data *data, char *asm_str)
+uint8_t get_asm_data_from_str(dsp_asm_data *data, char *asm_str)
 {
 	uint32_t i, t_start, buf[4];
 	dsp_asm_str_tokens tokens;
+	uint8_t ret = 1;
 
 	memset(&tokens, 0, sizeof(tokens));
 	tokenize_asm_str(asm_str, &tokens);
@@ -4682,7 +4693,12 @@ void get_asm_data_from_str(dsp_asm_data *data, char *asm_str)
 		t_start = data->p_op_end_token + 1;
 	}
 
-	get_opcode_data_from_tokens(&data->op, t_start, tokens.token_cnt, &tokens);
+	if (!get_opcode_data_from_tokens(&data->op, t_start,
+				tokens.token_cnt, &tokens)) {
+		printf("Failed to get opcode data from tokens!\n");
+		ret = 0;
+		goto exit;
+	}
 
 	/*
 	 * If the op string starts with "OP_0x", then the op has been
@@ -4695,10 +4711,23 @@ void get_asm_data_from_str(dsp_asm_data *data, char *asm_str)
 		find_compatible_asm_opcode(data);
 
 	/* Found a valid op_info struct, create op. */
-	if (data->op.matched)
-		create_op_words(data, buf);
+	if (data->op.matched) {
+		if (data->has_p_op && !data->p_op.matched) {
+			printf("Failed to find a matching p_op, aborting.\n");
+			ret = 0;
+			goto exit;
+		}
 
+		create_op_words(data, buf);
+	} else {
+		printf("Failed to find a match for op %s!\n", data->op.op_str);
+		ret = 0;
+	}
+
+exit:
 	/* Free tokens. */
 	for (i = 0; i < tokens.token_cnt; i++)
 		free(tokens.token[i]);
+
+	return ret;
 }
