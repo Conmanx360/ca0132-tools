@@ -1231,7 +1231,7 @@ static const op_operand_layout operand_layouts[] = {
 		     .operand_type    = OP_OPERAND_REG_3_Y_T2,
 		     .operand_dir     = OPERAND_DIR_Y, } },
 	       .supports_opt_args = 1,
-	       .bitmask = { 0x00000000, 0x00000000, 0x00000000, 0x00000000, } } },
+	       .bitmask = { 0x00000000, 0x00000001, 0x00000000, 0x00000000, } } },
 	  .loc_layout_cnt = 3, },
 	/*
 	 * OP_LAYOUT_R_X_Y_A_2:
@@ -1301,7 +1301,7 @@ static const op_operand_layout operand_layouts[] = {
 		     .operand_type    = OP_OPERAND_REG_4,
 		     .operand_dir     = OPERAND_DIR_A, } },
 	       .supports_opt_args = 1,
-	       .bitmask = { 0x00000000, 0x00e00000, 0x00000000, 0x00000000, } } },
+	       .bitmask = { 0x00000000, 0x000e0000, 0x00000000, 0x00000000, } } },
 	  .loc_layout_cnt = 2, },
 	/*
 	 * OP_LAYOUT_MOV_LIT_16_2:
