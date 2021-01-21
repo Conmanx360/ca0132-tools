@@ -358,7 +358,7 @@ static void print_operand_str(dsp_main *data, operand_data *operand, uint8_t fin
 			tmp0 |= 0x8;
 
 		tmp1 = (operand->operand_val >> 3) & 0x1ffff;
-		if (tmp1 & 0x100000)
+		if (tmp1 & 0x10000)
 			tmp1 |= 0xfffe0000;
 
 		if (!(tmp0 & 0x8)) {
