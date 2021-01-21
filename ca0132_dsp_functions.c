@@ -3337,7 +3337,7 @@ static uint32_t check_operand_compatibility(dsp_asm_op_data *op_data,
 		if (operand->type != OPERAND_TYPE_REG)
 			break;
 
-		if (reg_val < 5)
+		if (reg_val < 6)
 			ret = 1;
 
 		break;
