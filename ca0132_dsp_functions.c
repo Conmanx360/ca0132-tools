@@ -2844,7 +2844,7 @@ static void asm_op_operand_val_fixup(const operand_loc_descriptor *loc,
 
 	case OP_OPERAND_REG_2_T1:
 		/* Base is 12, so if we're less than that, set bit 2. */
-		if (operand->val < 12)
+		if ((operand->val & 0xff) < 12)
 			operand->val = 0x02 + (operand->val & 0x01);
 		else
 			operand->val &= 0x01;
@@ -2894,7 +2894,7 @@ static void asm_op_operand_val_fixup(const operand_loc_descriptor *loc,
 		 * 8-11 are 0x00-0x03.
 		 */
 		if ((operand->val & 0xff) > 11)
-			operand->val = (6 + operand->val) & 0x01;
+			operand->val = 6 + (operand->val & 0x01);
 		else if (operand->val > 5)
 			operand->val &= 0x03;
 
@@ -2986,8 +2986,9 @@ static void asm_op_operand_val_fixup(const operand_loc_descriptor *loc,
 		break;
 
 	case OP_OPERAND_A_REG_INT_17_OFFSET:
+		operand->val &= 0xfffff;
 		if (operand->type == OPERAND_TYPE_IND_A_REG_Y_OFFSET)
-			operand->val |= (1 << 20); /*0x100000*/
+			operand->val |= 0x100000;
 
 		break;
 
