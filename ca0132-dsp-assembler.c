@@ -20,8 +20,7 @@ static uint32_t get_next_asm_op_str(FILE *asm_file, FILE *tmp, char *buf)
 
 		if (buf[i] == ';') {
 			ret = 1;
-			buf[i + 1] = '\n';
-			buf[i + 2] = '\0';
+			buf[i + 1] = '\0';
 			break;
 		}
 
