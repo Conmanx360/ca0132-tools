@@ -53,6 +53,7 @@ struct scp_data {
 };
 
 /* ca0132_base_functions.c function declarations. */
+void ca0132_command_wait();
 int dspio_write(int fd, uint32_t data);
 
 void chipio_8051_write_exram_at_addr(int fd, uint16_t addr, uint8_t data);

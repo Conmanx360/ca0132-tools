@@ -142,18 +142,17 @@ static void print_serial_buffer_cmd_response(int fd, uint8_t base_ptr,
 	printf("Response:\n%s\n\n", buf);
 }
 
-const struct timespec timeout_val;
 static int check_out_buffer_change(int fd, uint8_t base_ptr)
 {
 	uint32_t i, ret;
 
-	nanosleep(&timeout_val, NULL);
+	ca0132_command_wait();
 	for (i = 0; i < 4; i++) {
 		ret = chipio_8051_read_exram_at_addr(fd, OUT_BUF_WRITE_PTR);
 		if (ret != base_ptr)
 			return 0;
 
-		nanosleep(&timeout_val, NULL);
+		ca0132_command_wait();
 	}
 
 	return 1;

@@ -638,12 +638,11 @@ static void write_8051_exploits(int fd)
 			main_func_entry_addr);
 }
 
-const struct timespec timeout_val;
 static int check_dump_status(int fd)
 {
 	uint32_t i, ret;
 
-	nanosleep(&timeout_val, NULL);
+	ca0132_command_wait();
 	for (i = 0; i < 4; i++) {
 		ret = chipio_8051_read_exram_at_addr(fd, EXRAM_SIGNAL_ADDR);
 		if (ret == 0xff) {
@@ -653,7 +652,7 @@ static int check_dump_status(int fd)
 
 		putchar('.');
 		fflush(stdout);
-		nanosleep(&timeout_val, NULL);
+		ca0132_command_wait();
 	}
 
 	return -1;

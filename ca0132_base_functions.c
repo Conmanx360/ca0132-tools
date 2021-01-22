@@ -7,10 +7,15 @@
  */
 #include "ca0132_defs.h"
 
-const struct timespec timeout_val = {
+static const struct timespec timeout_val = {
 	.tv_sec  = 0,
 	.tv_nsec = 12500000,
 };
+
+void ca0132_command_wait()
+{
+	nanosleep(&timeout_val, NULL);
+}
 
 /* Pack the two SCP verb structures for an SCP verb. */
 static void pack_scp_verb_structs(uint32_t data, struct hda_verb_ioctl *v)
@@ -35,7 +40,7 @@ static int dspio_send_verb_with_status(int fd, struct hda_verb_ioctl *v)
 		if ((v->res >= 0) && (v->res != STATUS_DSPIO_BUSY))
 			return 0;
 
-		nanosleep(&timeout_val, NULL);
+		ca0132_command_wait();
 	}
 
 	return 1;
@@ -55,7 +60,7 @@ static int dspio_write_wait(int fd)
 		if (!v.res)
 			return 0;
 
-		nanosleep(&timeout_val, NULL);
+		ca0132_command_wait();
 	}
 
 	return 1;
@@ -99,7 +104,7 @@ static uint32_t chipio_get_status(int fd)
 		if (!v.res)
 			return 0;
 
-		nanosleep(&timeout_val, NULL);
+		ca0132_command_wait();
 	}
 
 	printf("ChipIO busy, can't process request.\n");
@@ -119,7 +124,7 @@ static int chipio_verb_send_with_status(int fd, uint32_t verb, uint32_t data)
 		if (!v.res)
 			return 0;
 
-		nanosleep(&timeout_val, NULL);
+		ca0132_command_wait();
 	}
 
 	return v.res;
