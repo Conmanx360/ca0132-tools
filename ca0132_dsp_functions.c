@@ -4671,14 +4671,10 @@ static void tokenize_asm_str(char *asm_str, dsp_asm_str_tokens *tokens)
 	char *buf;
 
 	/*
-	 * If the string ends with a semi-colon, add an extra byte to create a
-	 * final delimiter. For some reason, strtok wants to overwrite the
-	 * final NULL terminator when we end on a semi-colon.
+	 * Add an extra byte to the string copy buffer, if we don't, strtok creates
+	 * issues for some reason.
 	 */
-	if (get_final_str_char(asm_str) == ';')
-		buf = calloc(strlen(asm_str) + 1, sizeof(*buf));
-	else
-		buf = calloc(strlen(asm_str), sizeof(*buf));
+	buf = calloc(strlen(asm_str) + 1, sizeof(*buf));
 	remove_asm_str_comments(asm_str, buf);
 
 	token_str = strtok(buf, delim);
