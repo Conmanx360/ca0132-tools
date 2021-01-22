@@ -2957,12 +2957,24 @@ static void asm_op_operand_val_fixup(const operand_loc_descriptor *loc,
 		break;
 
 	case OP_OPERAND_REG_3_FMA:
-		tmp = 0;
+		switch (operand->val & 0x0e) {
+		case 12:
+			tmp = 0x02;
+			break;
 
-		if (operand->val & 0x04)
-			tmp |= 0x04;
-		if (operand->val & 0x08)
-			tmp |= 0x02;
+		case 8:
+			tmp = 0x06;
+			break;
+
+		case 0:
+			tmp = 0x04;
+			break;
+
+		default:
+			tmp = 0x00;
+			break;
+		}
+
 		if (operand->val & 0x01)
 			tmp |= 0x01;
 

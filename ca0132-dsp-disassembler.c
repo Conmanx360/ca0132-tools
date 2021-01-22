@@ -439,11 +439,25 @@ static void print_operand_str(dsp_main *data, operand_data *operand, uint8_t fin
 		break;
 
 	case OP_OPERAND_REG_3_FMA:
-		tmp0 = 0;
-		if (operand->operand_val & 0x04)
-			tmp0 += 4;
-		if (operand->operand_val & 0x02)
-			tmp0 += 8;
+		switch ((operand->operand_val >> 1) & 0x03) {
+		case 3:
+			tmp0 = 8;
+			break;
+
+		case 2:
+			tmp0 = 0;
+			break;
+
+		case 1:
+			tmp0 = 12;
+			break;
+
+		default:
+			tmp0 = 4;
+			break;
+
+		}
+
 		if (operand->operand_val & 0x01)
 			tmp0 += 1;
 
