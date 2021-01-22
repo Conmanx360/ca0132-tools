@@ -1029,6 +1029,26 @@ static const op_operand_layout operand_layouts[] = {
 	       .bitmask = { 0x00000000, 0x00000000, 0x00000000, 0x00000000, } } },
 	  .loc_layout_cnt = 2, },
 	/*
+	 * OP_LAYOUT_STACK_UNK_1:
+	 */
+	{ .loc_layouts = {
+	     { .layout_val_loc = {
+		       .part1_bit_start = 0,
+		       .part1_bits      = 0 },
+	       .layout_val  = 0x00,
+	       .operand_cnt = 2,
+	       .operand_loc = {
+		   { .part1_bit_start = 20,
+		     .part1_bits      = 5,
+		     .operand_type    = OP_OPERAND_REG_5,
+		     .operand_dir     = OPERAND_DIR_DST, },
+		   { .part1_bit_start = 9,
+		     .part1_bits      = 8,
+		     .operand_type    = OP_OPERAND_LITERAL_8,
+		     .operand_dir     = OPERAND_DIR_SRC, } },
+	       .bitmask = { 0x00000000, 0x00000000, 0x00000000, 0x00000000, } } },
+	  .loc_layout_cnt = 1, },
+	/*
 	 * OP_LAYOUT_MOV_2:
 	 */
 	{ .loc_layouts = {
@@ -4380,6 +4400,7 @@ static const char *operand_layout_id_str[] = {
 	"OP_LAYOUT_LOOP_PC_OFFSET_REG_CNT_1",
 	"OP_LAYOUT_LOOP_PC_OFFSET_LIT_8_CNT_1",
 	"OP_LAYOUT_PC_SET_REG_1",
+	"OP_LAYOUT_STACK_UNK_1",
 	"OP_LAYOUT_MOV_2",
 	"OP_LAYOUT_MOVX_2",
 	"OP_LAYOUT_R_X_Y_2",
