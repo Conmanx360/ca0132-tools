@@ -628,7 +628,8 @@ enum parallel_operand_layout_id {
 
 enum operand_layout_id {
 	OP_LAYOUT_MOV_1,
-	OP_LAYOUT_MOVX_1,
+	OP_LAYOUT_MOVX_MDFR_OFFSET_1,
+	OP_LAYOUT_MOVX_LIT_OFFSET_1,
 	OP_LAYOUT_R_X_Y_1,
 	OP_LAYOUT_R_X_Y_A_1,
 	OP_LAYOUT_R_X_LIT_8_Y_1,
