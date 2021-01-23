@@ -1088,6 +1088,22 @@ static const op_operand_layout operand_layouts[] = {
 	       .bitmask = { 0x00000000, 0x00000000, 0x00000000, 0x00000000, } } },
 	  .loc_layout_cnt = 1, },
 	/*
+	 * OP_LAYOUT_INTERRUPT_CLR_1:
+	 */
+	{ .loc_layouts = {
+	     { .layout_val_loc = {
+		       .part1_bit_start = 0,
+		       .part1_bits      = 0 },
+	       .layout_val  = 0x00,
+	       .operand_cnt = 1,
+	       .operand_loc = {
+		   { .part1_bit_start = 17,
+		     .part1_bits      = 8,
+		     .operand_type    = OP_OPERAND_LITERAL_8,
+		     .operand_dir     = OPERAND_DIR_NONE, } },
+	       .bitmask = { 0x00000000, 0x00000000, 0x00000000, 0x00000000, } } },
+	  .loc_layout_cnt = 1, },
+	/*
 	 * OP_LAYOUT_MOV_2:
 	 */
 	{ .loc_layouts = {
@@ -1951,6 +1967,11 @@ static const dsp_op_info asm_ops[] = {
 	  .has_op_layout = 1,
 	  .layout_id = OP_LAYOUT_LOOP_PC_OFFSET_REG_CNT_1,
  	},
+	{ .op_str = "INT_CLR",
+	  .op = 0x0022,
+	  .has_op_layout = 1,
+	  .layout_id = OP_LAYOUT_INTERRUPT_CLR_1,
+	},
 	{ .op_str = "HALT",
 	  .op = 0x0023,
 	  .has_op_layout = 1,
@@ -5131,6 +5152,7 @@ static const char *operand_layout_id_str[] = {
 	"OP_LAYOUT_LOOP_PC_OFFSET_LIT_8_CNT_1",
 	"OP_LAYOUT_PC_SET_REG_1",
 	"OP_LAYOUT_STACK_UNK_1",
+	"OP_LAYOUT_INTERRUPT_CLR_1",
 	"OP_LAYOUT_MOV_2",
 	"OP_LAYOUT_MOVX_MDFR_OFFSET_2",
 	"OP_LAYOUT_MOVX_LIT_OFFSET_2",
