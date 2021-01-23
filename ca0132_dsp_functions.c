@@ -5261,7 +5261,11 @@ static void remove_asm_str_comments(char *asm_str, char *buf)
 		}
 	}
 
-	buf[y] = '\0';
+	if (y == strlen(asm_str))
+		buf[y - 1] = '\0';
+	else
+		buf[y] = '\0';
+
 }
 
 /*
@@ -5274,11 +5278,8 @@ static void tokenize_asm_str(char *asm_str, dsp_asm_str_tokens *tokens)
 	char *token_str;
 	char *buf;
 
-	/*
-	 * Add an extra byte to the string copy buffer, if we don't, strtok creates
-	 * issues for some reason.
-	 */
-	buf = calloc(strlen(asm_str) + 1, sizeof(*buf));
+	/* Allocate a buffer for a copy of the assembly string. */
+	buf = calloc(strlen(asm_str), sizeof(*buf));
 	remove_asm_str_comments(asm_str, buf);
 
 	token_str = strtok(buf, delim);
