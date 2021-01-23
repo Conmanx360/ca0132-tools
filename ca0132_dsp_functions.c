@@ -1125,7 +1125,74 @@ static const op_operand_layout operand_layouts[] = {
 	       .bitmask = { 0x00000000, 0x00000001, 0x00000000, 0x00000000, } } },
 	  .loc_layout_cnt = 4, },
 	/*
-	 * OP_LAYOUT_MOVX_2:
+	 * OP_LAYOUT_MOVX_MDFR_OFFSET_2:
+	 */
+	{ .loc_layouts = {
+	     { .layout_val_loc = {
+		       .part1_bit_start = 46,
+		       .part1_bits      = 1 },
+	       .layout_val  = 0x00,
+	       .operand_cnt = 4,
+	       .operand_loc = {
+		   { .part1_bit_start = 41,
+		     .part1_bits      = 5,
+		     .operand_type    = OP_OPERAND_REG_5,
+		     .operand_dir     = OPERAND_DIR_DST, },
+		   { .part1_bit_start = 38,
+		     .part1_bits      = 3,
+		     .part2_bit_start = 47,
+		     .part2_bits      = 3,
+		     .operand_type    = OP_OPERAND_A_REG_X_MDFR_OFFSET,
+		     .operand_dir     = OPERAND_DIR_SRC,
+		     .parallel_end    = 1, },
+		   { .part1_bit_start = 21,
+		     .part1_bits      = 5,
+		     .operand_type    = OP_OPERAND_REG_5,
+		     .operand_dir     = OPERAND_DIR_DST, },
+		   { .part1_bit_start = 18,
+		     .part1_bits      = 3,
+		     .part2_bit_start = 27,
+		     .part2_bits      = 3,
+		     .operand_type    = OP_OPERAND_A_REG_Y_MDFR_OFFSET,
+		     .operand_dir     = OPERAND_DIR_SRC, } },
+	       .bitmask = { 0x00000000, 0x00000000, 0x00000000, 0x00000000, } },
+	     { .layout_val_loc = {
+		       .part1_bit_start = 23,
+		       .part1_bits      = 1 },
+	       .layout_val  = 0x01,
+	       .operand_cnt = 2,
+	       .operand_loc = {
+		   { .part1_bit_start = 41,
+		     .part1_bits      = 5,
+		     .operand_type    = OP_OPERAND_REG_5,
+		     .operand_dir     = OPERAND_DIR_DST, },
+		   { .part1_bit_start = 38,
+		     .part1_bits      = 3,
+		     .part2_bit_start = 47,
+		     .part2_bits      = 3,
+		     .operand_type    = OP_OPERAND_A_REG_Y_MDFR_OFFSET,
+		     .operand_dir     = OPERAND_DIR_SRC, } },
+	       .bitmask = { 0x00000000, 0x00000008, 0x00000000, 0x00000000, } },
+	     { .layout_val_loc = {
+		       .part1_bit_start = 0,
+		       .part1_bits      = 0 },
+	       .layout_val  = 0x00,
+	       .operand_cnt = 2,
+	       .operand_loc = {
+		   { .part1_bit_start = 41,
+		     .part1_bits      = 5,
+		     .operand_type    = OP_OPERAND_REG_5,
+		     .operand_dir     = OPERAND_DIR_DST, },
+		   { .part1_bit_start = 38,
+		     .part1_bits      = 3,
+		     .part2_bit_start = 47,
+		     .part2_bits      = 3,
+		     .operand_type    = OP_OPERAND_A_REG_X_MDFR_OFFSET,
+		     .operand_dir     = OPERAND_DIR_SRC, } },
+	       .bitmask = { 0x00000000, 0x00000008, 0x00000000, 0x00000000, } } },
+	  .loc_layout_cnt = 3, },
+	/*
+	 * OP_LAYOUT_MOVX_LIT_OFFSET_2:
 	 */
 	{ .loc_layouts = {
 	     { .layout_val_loc = {
@@ -2747,21 +2814,21 @@ static const dsp_op_info asm_ops[] = {
 	{ .op_str = "MOVX_T2_2",
 	  .op = 0x0118,
 	  .has_op_layout = 1,
-	  .layout_id = OP_LAYOUT_MOVX_2,
+	  .layout_id = OP_LAYOUT_MOVX_MDFR_OFFSET_2,
 	  .mdfr_bit = 9,
 	  .mdfr_bit_type = OP_MDFR_BIT_TYPE_SRC_DST_SWAP,
 	},
 	{ .op_str = "MOVX_T1_2",
 	  .op = 0x011a,
 	  .has_op_layout = 1,
-	  .layout_id = OP_LAYOUT_MOVX_2,
+	  .layout_id = OP_LAYOUT_MOVX_LIT_OFFSET_2,
 	  .mdfr_bit = 9,
 	  .mdfr_bit_type = OP_MDFR_BIT_TYPE_SRC_DST_SWAP,
 	},
 	{ .op_str = "MOVX_2",
 	  .op = 0x011b,
 	  .has_op_layout = 1,
-	  .layout_id = OP_LAYOUT_MOVX_2,
+	  .layout_id = OP_LAYOUT_MOVX_LIT_OFFSET_2,
 	  .mdfr_bit = 9,
 	  .mdfr_bit_type = OP_MDFR_BIT_TYPE_SRC_DST_SWAP,
 	},
@@ -3613,14 +3680,14 @@ static void asm_op_operand_val_fixup(const operand_loc_descriptor *loc,
 		operand->val &= 0x7;
 		operand->val |= tmp;
 
-		if (operand->type == OPERAND_TYPE_IND_A_REG_Y_OFFSET)
+		if (operand->type == OPERAND_TYPE_IND_A_REG_Y_LIT_OFFSET)
 			operand->val |= (1 << 3);
 
 		break;
 
 	case OP_OPERAND_A_REG_INT_17_OFFSET:
 		operand->val &= 0xfffff;
-		if (operand->type == OPERAND_TYPE_IND_A_REG_Y_OFFSET)
+		if (operand->type == OPERAND_TYPE_IND_A_REG_Y_LIT_OFFSET)
 			operand->val |= 0x100000;
 
 		break;
@@ -4189,9 +4256,25 @@ static uint32_t check_operand_compatibility(dsp_asm_op_data *op_data,
 
 		break;
 
+	case OP_OPERAND_A_REG_X_MDFR_OFFSET:
+		if ((operand->type != OPERAND_TYPE_IND_A_REG_X_MDFR_OFFSET))
+			break;
+
+		ret = 1;
+
+		break;
+
+	case OP_OPERAND_A_REG_Y_MDFR_OFFSET:
+		if (operand->type != OPERAND_TYPE_IND_A_REG_Y_MDFR_OFFSET)
+			break;
+
+		ret = 1;
+
+		break;
+
 	case OP_OPERAND_A_REG_INT_7_OFFSET:
-		if ((operand->type != OPERAND_TYPE_IND_A_REG_X_OFFSET) &&
-				operand->type != OPERAND_TYPE_IND_A_REG_Y_OFFSET)
+		if ((operand->type != OPERAND_TYPE_IND_A_REG_X_LIT_OFFSET) &&
+				operand->type != OPERAND_TYPE_IND_A_REG_Y_LIT_OFFSET)
 			break;
 
 		i_tmp = restore_integer_offset(operand->val >> 3);
@@ -4203,8 +4286,8 @@ static uint32_t check_operand_compatibility(dsp_asm_op_data *op_data,
 		break;
 
 	case OP_OPERAND_A_REG_INT_17_OFFSET:
-		if ((operand->type != OPERAND_TYPE_IND_A_REG_X_OFFSET) &&
-				operand->type != OPERAND_TYPE_IND_A_REG_Y_OFFSET)
+		if ((operand->type != OPERAND_TYPE_IND_A_REG_X_LIT_OFFSET) &&
+				operand->type != OPERAND_TYPE_IND_A_REG_Y_LIT_OFFSET)
 			break;
 
 		i_tmp = restore_integer_offset(operand->val >> 3);
@@ -4216,7 +4299,7 @@ static uint32_t check_operand_compatibility(dsp_asm_op_data *op_data,
 		break;
 
 	case OP_OPERAND_A_REG_X_INT_11_OFFSET:
-		if (operand->type != OPERAND_TYPE_IND_A_REG_X_OFFSET)
+		if (operand->type != OPERAND_TYPE_IND_A_REG_X_LIT_OFFSET)
 			break;
 
 		i_tmp = restore_integer_offset(operand->val >> 3);
@@ -4228,7 +4311,7 @@ static uint32_t check_operand_compatibility(dsp_asm_op_data *op_data,
 		break;
 
 	case OP_OPERAND_A_REG_Y_INT_11_OFFSET:
-		if (operand->type != OPERAND_TYPE_IND_A_REG_Y_OFFSET)
+		if (operand->type != OPERAND_TYPE_IND_A_REG_Y_LIT_OFFSET)
 			break;
 
 		i_tmp = restore_integer_offset(operand->val >> 3);
@@ -4862,6 +4945,20 @@ static uint32_t get_indirect_address_reg_type(dsp_asm_op_operand *operand)
 		return 1;
 	}
 
+
+	if ((operand_str[8] == '+') && (!strncmp(&operand_str[10], "A_MD", 4))) {
+		/* Type is @A_Rx_X + A_MDx or @A_Rx_Y + A_MDx. */
+		operand->val = (strtol(&operand_str[14], NULL, 10) & 0x07) << 3;
+		operand->val |= tmp0 & 0x07;
+
+		if (tmp1)
+			operand->type = OPERAND_TYPE_IND_A_REG_Y_MDFR_OFFSET;
+		else
+			operand->type = OPERAND_TYPE_IND_A_REG_X_MDFR_OFFSET;
+
+		return 1;
+	}
+
 	if ((operand_str[8] == '+') || (operand_str[8] == '-')) {
 		/* Type is @A_Rx_X +/- 0xXXX or @A_Rx_Y +/- 0xXXX. */
 		i_tmp = strtol(&operand_str[10], NULL, 0);
@@ -4872,9 +4969,9 @@ static uint32_t get_indirect_address_reg_type(dsp_asm_op_operand *operand)
 		operand->val |= tmp0;
 
 		if (tmp1)
-			operand->type = OPERAND_TYPE_IND_A_REG_Y_OFFSET;
+			operand->type = OPERAND_TYPE_IND_A_REG_Y_LIT_OFFSET;
 		else
-			operand->type = OPERAND_TYPE_IND_A_REG_X_OFFSET;
+			operand->type = OPERAND_TYPE_IND_A_REG_X_LIT_OFFSET;
 
 		return 1;
 	}
@@ -4973,7 +5070,8 @@ static const char *operand_layout_id_str[] = {
 	"OP_LAYOUT_PC_SET_REG_1",
 	"OP_LAYOUT_STACK_UNK_1",
 	"OP_LAYOUT_MOV_2",
-	"OP_LAYOUT_MOVX_2",
+	"OP_LAYOUT_MOVX_MDFR_OFFSET_2",
+	"OP_LAYOUT_MOVX_LIT_OFFSET_2",
 	"OP_LAYOUT_R_X_Y_2",
 	"OP_LAYOUT_R_X_Y_A_2",
 	"OP_LAYOUT_MOV_LIT_16_2",

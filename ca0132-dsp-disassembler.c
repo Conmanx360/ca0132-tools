@@ -331,6 +331,18 @@ static void print_operand_str(dsp_main *data, operand_data *operand, uint8_t fin
 		reg_str = get_dsp_operand_str(operand->operand_val + 0x10);
 		break;
 
+	case OP_OPERAND_A_REG_X_MDFR_OFFSET:
+	case OP_OPERAND_A_REG_Y_MDFR_OFFSET:
+		tmp0 = (operand->operand_val >> 3) & 0x07;
+		tmp1 = operand->operand_val & 0x07;
+		if (operand->operand_type == OP_OPERAND_A_REG_X_MDFR_OFFSET)
+			sprintf(buf, "@A_R%d_X + A_MD%d", tmp1, tmp0);
+		else
+			sprintf(buf, "@A_R%d_Y + A_MD%d", tmp1, tmp0);
+
+		reg_str = buf;
+		break;
+
 	case OP_OPERAND_A_REG_INT_7_OFFSET:
 		tmp0 = operand->operand_val & 0xf;
 		tmp1 = (operand->operand_val >> 4) & 0x7f;
