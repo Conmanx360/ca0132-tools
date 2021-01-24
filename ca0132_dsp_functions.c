@@ -3407,22 +3407,20 @@ static const dsp_op_info asm_ops[] = {
 	},
 };
 
-/*
- * Only three possible op lengths:
- * Length 1 if the opcode is less than 0x0100,
- * Length 2 if it's less than 0x0180,
- * Length 4 for 0x0180 and up.
- */
 uint32_t get_dsp_op_len(uint32_t op)
 {
 	uint32_t len;
 
-	if (op < 0x0100)
+	/* If MSB (for DSP program word) is set, it'll be at least length two. */
+	if (op & 0x01000000) {
+		/* If bit below MSB is set, we're at length 4. */
+		if (op & 0x00800000)
+			len = 4;
+		else
+			len = 2;
+	} else {
 		len = 1;
-	else if (op < 0x0180)
-		len = 2;
-	else
-		len = 4;
+	}
 
 	return len;
 }
@@ -3845,7 +3843,7 @@ static void create_op_words(dsp_asm_data *data, uint32_t *op_words)
 	else
 		p_op = NULL;
 
-	len = get_dsp_op_len(op->opcode);
+	len = get_dsp_op_len(op->opcode << 16);
 	src_dst_swap = op->src_dst_swap;
 	loc_layout = op->loc_layout;
 
@@ -4696,7 +4694,7 @@ static uint32_t check_op_layout_compatibility(const dsp_op_info *info,
 	 * Unless it's a single length NOP and we need opt args.
 	 */
 	if (!data->operand_cnt && (layout_id == OP_LAYOUT_NOP) && !is_p_op) {
-		if (data->needs_alt_args && (get_dsp_op_len(info->op) < 2))
+		if (data->needs_alt_args && (get_dsp_op_len(info->op << 16) < 2))
 			return 0;
 
 		layout = get_op_layout(layout_id);
@@ -4836,7 +4834,7 @@ static void find_compatible_asm_opcode(dsp_asm_data *data)
 	op_info = find_compatible_op_info(data, op_info);
 	while (op_info) {
 		if (data->has_p_op) {
-			len = get_dsp_op_len(op_info->op);
+			len = get_dsp_op_len(op_info->op << 16);
 			p_op_info = NULL;
 			p_op_info = find_compatible_p_op_info(data, p_op_info, len);
 
@@ -5285,7 +5283,7 @@ static void extract_opcode_from_spec_op_str(dsp_asm_data *data)
 		if (strncmp(p_op->op_str, "P_OP_0x", 7)) {
 			info = NULL;
 			info = find_compatible_p_op_info(data, info,
-					get_dsp_op_len(op->opcode));
+					get_dsp_op_len(op->opcode << 16));
 			if (info)
 				set_asm_op_data_from_op_info(p_op, info);
 

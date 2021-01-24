@@ -8,6 +8,7 @@ typedef struct {
 	FILE *pmem;
 
 	uint32_t cur_op[4];
+	uint32_t cur_op_len;
 
 	uint32_t cur_addr;
 	const char *cur_op_str;
@@ -26,7 +27,7 @@ static uint32_t get_dsp_op(dsp_main *data, const dsp_op_info **op_info)
 
 	/* Extract the opcode from it and get it's length.*/
 	tmp = (data->cur_op[0] & 0xffff0000) >> 16;
-	len = get_dsp_op_len(tmp);
+	len = get_dsp_op_len(data->cur_op[0]);
 
 	/* If the op is greater than one word, read the rest of it's data. */
 	if (len > 1) {
@@ -43,6 +44,8 @@ static uint32_t get_dsp_op(dsp_main *data, const dsp_op_info **op_info)
 				data->cur_op[0]);
 		data->cur_addr += len;
 	}
+
+	data->cur_op_len = len;
 
 	return 0;
 }
@@ -732,7 +735,7 @@ static void get_parallel_op_data(dsp_main *data, const dsp_op_info *op_info)
 
 	val = get_bits_in_op_words(data->cur_op, 10, 6);
 	loc_layout = NULL;
-	op_len = get_dsp_op_len(op_info->op);
+	op_len = data->cur_op_len;
 	if (op_len == 2) {
 
 		if (val >= 0x3e) {
@@ -808,7 +811,7 @@ static void get_op_data(dsp_main *data, const dsp_op_info *op_info)
 	}
 
 	if (layout_id == OP_LAYOUT_NOP) {
-		if ((get_dsp_op_len(op_info->op) > 1))
+		if (data->cur_op_len > 1)
 			get_parallel_op_data(data, op_info);
 
 		printf("%s;", op_info->op_str);
@@ -833,7 +836,7 @@ static void get_op_data(dsp_main *data, const dsp_op_info *op_info)
 			break;
 	}
 
-	if ((get_dsp_op_len(op_info->op) > 1) && loc_layout->supports_opt_args)
+	if ((data->cur_op_len > 1) && loc_layout->supports_opt_args)
 		get_parallel_op_data(data, op_info);
 
 	print_op(data, op_info, loc_layout);
@@ -876,7 +879,7 @@ static int get_next_op(dsp_main *data)
 
 	printf("\n");
 
-	data->cur_addr += get_dsp_op_len(op_info->op);
+	data->cur_addr += data->cur_op_len;
 
 	return 1;
 }

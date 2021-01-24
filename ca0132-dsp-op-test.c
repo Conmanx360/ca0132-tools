@@ -375,7 +375,7 @@ static void assemble_asm_strs(dsp_asm_data *data, const char **str, uint32_t str
 
 		get_asm_data_from_str(data, buf);
 
-		len = get_dsp_op_len(data->opcode[0] >> 16);
+		len = get_dsp_op_len(data->opcode[0]);
 		memcpy(opcodes + (*cur_offset), data->opcode, sizeof(uint32_t) * len);
 		*cur_offset += len;
 	}
@@ -406,7 +406,7 @@ static void create_reg_dump_range_ops(dsp_asm_data *data,
 		create_reg_dump_asm_op(buf, reg_start + i);
 		get_asm_data_from_str(data, buf);
 
-		len = get_dsp_op_len(data->opcode[0] >> 16);
+		len = get_dsp_op_len(data->opcode[0]);
 		memcpy(opcodes + (*cur_offset), data->opcode, sizeof(uint32_t) * len);
 		*cur_offset += len;
 	}
@@ -438,7 +438,7 @@ static void create_gpram_dump_ops(dsp_asm_data *data,
 		create_gpram_dump_asm_op(buf, i);
 		get_asm_data_from_str(data, buf);
 
-		len = get_dsp_op_len(data->opcode[0] >> 16);
+		len = get_dsp_op_len(data->opcode[0]);
 		memcpy(opcodes + (*cur_offset), data->opcode, sizeof(uint32_t) * len);
 		*cur_offset += len;
 	}
@@ -459,7 +459,7 @@ static void create_func_call_op(dsp_asm_data *data, uint32_t func_addr,
 
 	get_asm_data_from_str(data, buf);
 
-	len = get_dsp_op_len(data->opcode[0] >> 16);
+	len = get_dsp_op_len(data->opcode[0]);
 	memcpy(opcodes + (*cur_offset), data->opcode, sizeof(uint32_t) * len);
 	*cur_offset += len;
 }
@@ -568,7 +568,7 @@ static uint32_t get_test_op_from_str(char *buf, uint32_t *test_op)
 	if (!in_cnt)
 		return 0;
 
-	return get_dsp_op_len(test_op[0] >> 16);
+	return get_dsp_op_len(test_op[0]);
 }
 
 static void read_x_y_ram_dump(int fd, uint32_t addr, uint32_t cnt, uint32_t *data)

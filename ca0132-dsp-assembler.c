@@ -60,7 +60,7 @@ static int read_assembly_from_file(char *asm_file_name, char *data_file_name)
 		}
 
 		fwrite(data.opcode, sizeof(data.opcode[0]),
-				get_dsp_op_len(data.opcode[0] >> 16), data_file);
+				get_dsp_op_len(data.opcode[0]), data_file);
 
 		memset(&data, 0, sizeof(data));
 		memset(buf, 0, sizeof(buf));
