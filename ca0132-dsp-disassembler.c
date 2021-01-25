@@ -756,7 +756,7 @@ static void get_parallel_op_data(dsp_main *data, const dsp_op_info *op_info)
 	if (!p_op)
 		return;
 
-	layout_id = p_op->layout_id;
+	layout_id = p_op->layout_id[0];
 	if (p_op->mdfr_bit_type == OP_MDFR_BIT_TYPE_USE_ALT_LAYOUT) {
 		if (get_bits_in_op_words(data->cur_op, p_op->mdfr_bit, 1))
 			layout_id = p_op->alt_layout_id;
@@ -801,7 +801,7 @@ static void get_op_data(dsp_main *data, const dsp_op_info *op_info)
 
 	printf("0x%04x: ", data->cur_addr);
 
-	layout_id = op_info->layout_id;
+	layout_id = op_info->layout_id[0];
 	loc_layout = NULL;
 	/* Check if the op has a possible alternative layout. */
 	if (op_info->mdfr_bit_type == OP_MDFR_BIT_TYPE_USE_ALT_LAYOUT) {

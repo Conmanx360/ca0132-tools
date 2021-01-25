@@ -655,6 +655,14 @@ enum operand_layout_id {
 	OP_LAYOUT_MOV_LIT_32_4,
 	OP_LAYOUT_R_X_LIT_32_Y_4,
 	OP_LAYOUT_NOP,
+	OP_LAYOUT_NONE,
+};
+
+enum operand_layout_len {
+	OP_LAYOUT_LEN_1,
+	OP_LAYOUT_LEN_2,
+	OP_LAYOUT_LEN_4,
+	OP_LAYOUT_LEN_CNT,
 };
 
 /*
@@ -716,7 +724,7 @@ typedef struct {
 	uint32_t op;
 	
 	uint8_t has_op_layout;
-	uint8_t layout_id;
+	uint8_t layout_id[OP_LAYOUT_LEN_CNT];
 	uint8_t alt_layout_id;
 
 	uint8_t mdfr_bit;
