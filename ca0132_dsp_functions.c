@@ -1861,6 +1861,25 @@ static const op_operand_layout operand_layouts[] = {
 	 */
 	{ .loc_layouts = {
 	     { .layout_val_loc = {
+		       .part1_bit_start = 77,
+		       .part1_bits      = 1 },
+	       .layout_val  = 0x01,
+	       .operand_cnt = 3,
+	       .operand_loc = {
+		   { .part1_bit_start = 78,
+		     .part1_bits      = 11,
+		     .operand_type    = OP_OPERAND_REG_11,
+		     .operand_dir     = OPERAND_DIR_DST, },
+		   { .part1_bit_start = 89,
+		     .part1_bits      = 11,
+		     .operand_type    = OP_OPERAND_REG_11,
+		     .operand_dir     = OPERAND_DIR_X, },
+		   { .part1_bit_start = 42,
+		     .part1_bits      = 32,
+		     .operand_type    = OP_OPERAND_LITERAL_32,
+		     .operand_dir     = OPERAND_DIR_Y, } },
+	       .bitmask = { 0x00000000, 0x00000000, 0x00000000, 0x00000000, } },
+	     { .layout_val_loc = {
 		       .part1_bit_start = 0,
 		       .part1_bits      = 0 },
 	       .layout_val  = 0x00,
@@ -1892,7 +1911,7 @@ static const op_operand_layout operand_layouts[] = {
 		     .operand_type    = OP_OPERAND_LITERAL_32,
 		     .operand_dir     = OPERAND_DIR_Y, } },
 	       .bitmask = { 0x00000000, 0x00000000, 0x00000000, 0x00000000, } } },
-	  .loc_layout_cnt = 1, },
+	  .loc_layout_cnt = 2, },
 	/*
 	 * OP_LAYOUT_NOP:
 	 */
