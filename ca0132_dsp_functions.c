@@ -2906,6 +2906,7 @@ static const dsp_op_info asm_ops[] = {
 	  .layout_id = { OP_LAYOUT_R_X_LIT_8_Y_1,
 	                 OP_LAYOUT_R_X_LIT_16_Y_2,
 	                 OP_LAYOUT_R_X_LIT_32_Y_4 },
+	  .src_mdfr = { OPERAND_MDFR_16_BIT_SIGNED },
 	},
 	/* Might not even be valid. */
 	{ .op_str = "UNK-0x0b1",
