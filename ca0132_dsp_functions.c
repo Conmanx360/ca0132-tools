@@ -4263,7 +4263,7 @@ static void asm_op_operand_val_fixup(const operand_loc_descriptor *loc,
 
 	case OP_OPERAND_REG_11_10_OFFSET:
 		tmp_op = operand - 3;
-		i_tmp = (operand->val & 0xff) - (tmp_op->val & 0xff);
+		i_tmp = (operand->val & 0x7ff) - (tmp_op->val & 0x7ff);
 		tmp = i_tmp & 0x3ff;
 
 		operand->val = tmp << 11;
@@ -4806,7 +4806,12 @@ static uint32_t check_operand_compatibility(dsp_asm_op_data *op_data,
 		tmp_op = &op_data->operands[tmp0];
 
 		/* If the upper 3 bits match, this will work. */
-		if ((operand->val & 0x700) == (tmp_op->val & 0x700))
+		if (operand->val > tmp_op->val)
+			i_tmp = operand->val - tmp_op->val;
+		else
+			i_tmp = tmp_op->val - operand->val;
+
+		if (i_tmp < 0x200)
 			ret = 1;
 
 		break;

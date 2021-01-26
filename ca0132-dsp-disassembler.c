@@ -274,13 +274,6 @@ static void print_operand_str(dsp_main *data, operand_data *operand, uint8_t fin
 
 		tmp0 += (uint16_t)tmp1;
 
-
-		if ((tmp0 & 0x600) != (operand->operand_val & 0x600)) {
-			tmp0 &= 0x1ff;
-			tmp0 |= (operand->operand_val & 0x600);
-		}
-
-
 		if (tmp0 & 0x400) {
 			if (tmp0 & 0x800)
 				sprintf(buf, "YGPRAM_%03d", tmp0 & 0x3ff);
