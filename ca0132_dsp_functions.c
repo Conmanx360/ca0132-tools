@@ -4155,7 +4155,7 @@ static void asm_op_operand_val_fixup(const operand_loc_descriptor *loc,
 		 */
 		if ((operand->val & 0xff) > 11)
 			operand->val = 6 + (operand->val & 0x01);
-		else if (operand->val > 5)
+		else if ((operand->val & 0xff) > 5)
 			operand->val &= 0x03;
 
 		break;
