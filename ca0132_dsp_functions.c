@@ -1217,9 +1217,11 @@ static const op_operand_layout operand_layouts[] = {
 	       .layout_val  = 0x01,
 	       .operand_cnt = 2,
 	       .operand_loc = {
-		   { .part1_bit_start = 41,
-		     .part1_bits      = 5,
-		     .operand_type    = OP_OPERAND_REG_5,
+		   { .part1_bit_start = 21,
+		     .part1_bits      = 1,
+		     .part2_bit_start = 41,
+		     .part2_bits      = 5,
+		     .operand_type    = OP_OPERAND_REG_5_MOVX,
 		     .operand_dir     = OPERAND_DIR_DST, },
 		   { .part1_bit_start = 38,
 		     .part1_bits      = 3,
@@ -1234,9 +1236,11 @@ static const op_operand_layout operand_layouts[] = {
 	       .layout_val  = 0x00,
 	       .operand_cnt = 2,
 	       .operand_loc = {
-		   { .part1_bit_start = 41,
-		     .part1_bits      = 5,
-		     .operand_type    = OP_OPERAND_REG_5,
+		   { .part1_bit_start = 21,
+		     .part1_bits      = 1,
+		     .part2_bit_start = 41,
+		     .part2_bits      = 5,
+		     .operand_type    = OP_OPERAND_REG_5_MOVX,
 		     .operand_dir     = OPERAND_DIR_DST, },
 		   { .part1_bit_start = 38,
 		     .part1_bits      = 3,
@@ -1284,9 +1288,11 @@ static const op_operand_layout operand_layouts[] = {
 	       .layout_val  = 0x00,
 	       .operand_cnt = 2,
 	       .operand_loc = {
-		   { .part1_bit_start = 41,
-		     .part1_bits      = 5,
-		     .operand_type    = OP_OPERAND_REG_5,
+		   { .part1_bit_start = 21,
+		     .part1_bits      = 1,
+		     .part2_bit_start = 41,
+		     .part2_bits      = 5,
+		     .operand_type    = OP_OPERAND_REG_5_MOVX,
 		     .operand_dir     = OPERAND_DIR_DST, },
 		   { .part1_bit_start = 23,
 		     .part1_bits      = 18,
@@ -4281,6 +4287,12 @@ static void asm_op_operand_val_fixup(const operand_loc_descriptor *loc,
 
 		break;
 
+	case OP_OPERAND_REG_5_MOVX:
+		if ((operand->val & 0xff) > 0x0f)
+			operand->val = (operand->val & 0x1f) | 0x20;
+
+		break;
+
 	default:
 		break;
 	}
@@ -4707,6 +4719,7 @@ static uint32_t check_operand_compatibility(dsp_asm_op_data *op_data,
 
 		break;
 
+	case OP_OPERAND_REG_5_MOVX:
 	case OP_OPERAND_REG_5:
 		if (operand->type != OPERAND_TYPE_REG)
 			break;

@@ -213,6 +213,7 @@ static void print_operand_str(dsp_main *data, operand_data *operand, uint8_t fin
 		break;
 
 	case OP_OPERAND_REG_5:
+	case OP_OPERAND_REG_5_MOVX:
 		reg_str = get_dsp_operand_str(operand->operand_val & 0x1f);
 		break;
 
