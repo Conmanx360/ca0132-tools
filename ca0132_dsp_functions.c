@@ -5334,15 +5334,36 @@ static void set_asm_p_op_data_from_op_info(dsp_asm_p_op_data *data, const dsp_op
 }
 
 /*
+ * Check the op_str for a length suffix, which is ':4', ':2', or ':1'. This
+ * helps the assembler produce 1:1 binaries.
+ * A length doesn't have to be set, and if it isn't, the assembler will always
+ * try to use the smallest op.
+ */
+static uint32_t check_op_str_for_len(dsp_asm_op_data *op)
+{
+	uint32_t str_len, op_len;
+
+	str_len = strlen(op->op_str);
+	op_len = 0;
+	if (op->op_str[str_len - 2] == ':') {
+		op_len = strtol(&op->op_str[str_len - 1], NULL, 10);
+		op->op_str[str_len - 2] = '\0';
+	}
+
+	return op_len;
+}
+
+/*
  * Checks which op lengths are possible given the current assembly string.
  * This is done by checking if we need a parallel op, and if we do, which
  * lengths can use this parallel op. Returns a bitmask.
  */
 static uint32_t get_compatible_op_len(dsp_asm_data *data)
 {
+	uint32_t op_len_bitmask, op_len;
 	const dsp_op_info *info;
-	uint32_t op_len_bitmask = 0;
 
+	op_len_bitmask = op_len = 0;
 	/*
 	 * If we have a parallel op, only lengths two and four are potentially
 	 * viable.
@@ -5367,6 +5388,10 @@ static uint32_t get_compatible_op_len(dsp_asm_data *data)
 		/* No parallel op, so all lengths are compatible. */
 		op_len_bitmask |= 0x07;
 	}
+
+	op_len = check_op_str_for_len(&data->op);
+	if (op_len)
+		op_len_bitmask = op_len;
 
 	data->p_op.matched = 0;
 
