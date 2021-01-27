@@ -26,8 +26,11 @@ static uint32_t get_dsp_op(dsp_main *data, const dsp_op_info **op_info)
 		return 1;
 
 	/* Extract the opcode from it and get it's length.*/
-	tmp = (data->cur_op[0] & 0xffff0000) >> 16;
 	len = get_dsp_op_len(data->cur_op[0]);
+	if (len > 1)
+		tmp = (data->cur_op[0] & 0x007f8000) >> 15;
+	else
+		tmp = (data->cur_op[0] & 0x00ff0000) >> 16;
 
 	/* If the op is greater than one word, read the rest of it's data. */
 	if (len > 1) {
@@ -795,8 +798,13 @@ static void get_op_data(dsp_main *data, const dsp_op_info *op_info)
 
 	printf("0x%04x: ", data->cur_addr);
 
-	layout_id = op_info->layout_id[0];
+	layout_id = get_op_layout_id(op_info, data->cur_op_len);
 	loc_layout = NULL;
+	if (layout_id == OP_LAYOUT_NONE) {
+		printf("%s ", op_info->op_str);
+		return;
+	}
+
 	/* Check if the op has a possible alternative layout. */
 	if (op_info->mdfr_bit_type == OP_MDFR_BIT_TYPE_USE_ALT_LAYOUT) {
 		if (get_bits_in_op_words(data->cur_op, op_info->mdfr_bit, 1)) {

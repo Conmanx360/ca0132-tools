@@ -809,6 +809,7 @@ uint32_t get_dsp_operand_str_val(char *operand, uint32_t *val);
 const dsp_op_info *get_dsp_op_info(uint32_t opcode);
 const dsp_op_info *get_dsp_p_op_info(uint32_t opcode, uint32_t op_len);
 const op_operand_layout *get_op_layout(uint32_t layout_id);
+uint32_t get_op_layout_id(const dsp_op_info *info, uint32_t len);
 const op_operand_layout *get_p_op_layout(uint32_t layout_id);
 const dsp_op_info *find_dsp_asm_op(dsp_asm_data *data, const dsp_op_info *start);
 const dsp_op_info *find_dsp_asm_p_op(dsp_asm_data *data, const dsp_op_info *start,
