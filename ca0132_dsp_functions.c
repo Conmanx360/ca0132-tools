@@ -5359,34 +5359,116 @@ static void set_asm_op_data_from_op_info(dsp_asm_op_data *data, const dsp_op_inf
 }
 
 /*
+ * Set a dsp_asm_op_data structure from the data stored in a dsp_asm_p_op_data
+ * structure.
+ */
+static void set_asm_op_data_from_p_op_data(dsp_asm_op_data *data,
+		dsp_asm_p_op_data *p_op_data)
+{
+	data->opcode = p_op_data->opcode;
+	data->loc_layout = p_op_data->loc_layout;
+	data->src_dst_swap = p_op_data->src_dst_swap;
+	data->mdfr_bit = p_op_data->mdfr_bit;
+	if (data->mdfr_bit)
+		data->use_op_mdfr_bit = 1;
+
+	data->matched = 1;
+}
+
+/*
+ * Set a dsp_asm_p_op_data structure with data from the matching op_info
+ * structure we found. Once a suitable primary opcode is found, we can pull
+ * this info depending on the opcode length.
+ */
+static void set_asm_p_op_data_from_op_info(dsp_asm_p_op_data *data, const dsp_op_info *info,
+		dsp_asm_op_data *p_op)
+{
+	data->opcode = info->op;
+	data->loc_layout = p_op->loc_layout;
+	data->src_dst_swap = info->src_dst_swap;
+	if (p_op->use_op_mdfr_bit)
+		data->mdfr_bit = info->mdfr_bit;
+	else
+		data->mdfr_bit = 0;
+
+	data->matched = 1;
+}
+
+/*
+ * Checks which op lengths are possible given the current assembly string.
+ * This is done by checking if we need a parallel op, and if we do, which
+ * lengths can use this parallel op. Returns a bitmask.
+ */
+static uint32_t get_compatible_op_len(dsp_asm_data *data)
+{
+	const dsp_op_info *info;
+	uint32_t op_len_bitmask = 0;
+
+	/*
+	 * If we have a parallel op, only lengths two and four are potentially
+	 * viable.
+	 */
+	if (data->has_p_op) {
+		/* Check for a compatible length 2 parallel op. */
+		info = find_compatible_p_op_info(data, NULL, 2);
+		if (info) {
+			set_asm_p_op_data_from_op_info(&data->valid_p_ops[0],
+					info, &data->p_op);
+			op_len_bitmask |= 0x02;
+		}
+
+		/* Check for a compatible length 4 parallel op. */
+		info = find_compatible_p_op_info(data, NULL, 4);
+		if (info) {
+			set_asm_p_op_data_from_op_info(&data->valid_p_ops[1],
+					info, &data->p_op);
+			op_len_bitmask |= 0x04;
+		}
+	} else {
+		/* No parallel op, so all lengths are compatible. */
+		op_len_bitmask |= 0x07;
+	}
+
+	data->p_op.matched = 0;
+
+	return op_len_bitmask;
+}
+
+/*
  * Search all asm ops until we find one that matches our given assembly info.
  */
 static void find_compatible_asm_opcode(dsp_asm_data *data)
 {
-	const dsp_op_info *op_info, *p_op_info;
-	uint32_t len;
+	uint32_t len, len_compat_mask;
+	const dsp_op_info *op_info;
 
-	op_info = p_op_info = NULL;
-	op_info = find_compatible_op_info(data, op_info);
-	while (op_info) {
+	len_compat_mask = get_compatible_op_len(data);
+
+	op_info = NULL;
+	while ((op_info = find_compatible_op_info(data, op_info))) {
 		if (data->has_p_op) {
+			/*
+			 * If the length is compatible, we've found our op.
+			 * Set the appropriate p_op data. If not, continue.
+			 */
 			len = get_dsp_op_len(op_info->op << 16);
-			p_op_info = NULL;
-			p_op_info = find_compatible_p_op_info(data, p_op_info, len);
+			if (!(len & len_compat_mask))
+				continue;
 
-			if (p_op_info)
-				break;
+			if (len == 2)
+				set_asm_op_data_from_p_op_data(&data->p_op,
+						&data->valid_p_ops[0]);
+			else
+				set_asm_op_data_from_p_op_data(&data->p_op,
+						&data->valid_p_ops[1]);
+			break;
 		} else {
 			break;
 		}
-
-		op_info = find_compatible_op_info(data, op_info);
 	}
 
 	if (op_info)
 		set_asm_op_data_from_op_info(&data->op, op_info);
-	if (p_op_info)
-		set_asm_op_data_from_op_info(&data->p_op, p_op_info);
 }
 
 /*

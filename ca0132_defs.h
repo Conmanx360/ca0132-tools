@@ -778,8 +778,19 @@ typedef struct {
 } dsp_asm_op_data;
 
 typedef struct {
+	uint32_t opcode;
+	const op_operand_loc_layout *loc_layout;
+
+	uint32_t mdfr_bit;
+	uint8_t src_dst_swap;
+
+	uint8_t matched;
+} dsp_asm_p_op_data;
+
+typedef struct {
 	uint32_t has_p_op;
 	uint32_t p_op_end_token;
+	dsp_asm_p_op_data valid_p_ops[2];
 
 	dsp_asm_op_data op, p_op;
 	uint32_t opcode[4];
