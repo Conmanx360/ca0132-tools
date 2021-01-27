@@ -98,10 +98,10 @@ static const char *reg_dump_entry_asm[] = {
 	 NOP;",
 	"MOV A_R6_BASE, CR_0x00000000 :\n\
          MOV A_R6_LENG, CR_0x00000000;",
-	"MOVX_2 R00, @A_R7_X - 0x004 :\n\
-         MOVX_2 R01, @A_R7_Y - 0x004;",
-	"MOVX_2 R02, @A_R7_X - 0x003 :\n\
-         MOVX_2 R03, @A_R7_Y - 0x003;",
+	"MOVX:2 R00, @A_R7_X - 0x004 :\n\
+         MOVX:2 R01, @A_R7_Y - 0x004;",
+	"MOVX:2 R02, @A_R7_X - 0x003 :\n\
+         MOVX:2 R03, @A_R7_Y - 0x003;",
 	"RET;",
 };
 
@@ -188,8 +188,8 @@ static const char *reg_dump_func_start_asm[] = {
 	 MOV_P @A_R6_Y_INC, R08 /\n\
 	 NOP;",
 	/* Original A_R6/A_R6_MDFR. */
-	"MOVX_2 R00, @A_R7_X - 0x002 :\n\
-         MOVX_2 R08, @A_R7_Y - 0x002;",
+	"MOVX:2 R00, @A_R7_X - 0x002 :\n\
+         MOVX:2 R08, @A_R7_Y - 0x002;",
 	"MOV_P @A_R6_X += A_MD6, R00 :\n\
          MOV_P @A_R6_Y += A_MD6, R08 /\n\
          MOV R00, A_R7 :\n\
@@ -240,7 +240,7 @@ static const char *reg_dump_func_start_asm[] = {
 	 * Pull original A_R6, store it into A_R0. Then restore A_R0
 	 * afterwards.
 	 */
-	"MOVX_1 R02, @A_R7_X - 0x02;",
+	"MOVX:1 R02, @A_R7_X - 0x02;",
 	"MOV_P @A_R6_X += A_MD6, R00 :\n\
          MOV_P @A_R6_Y += A_MD6, R08 /\n\
          MOV R03, A_R0 :\n\
@@ -269,7 +269,7 @@ static const char *reg_dump_func_start_asm[] = {
 	 MOV_P @A_R6_Y_INC, R08 /\n\
 	 NOP;",
 	/* Get original A_R6_BASE. */
-	"MOVX_1 R00, @A_R7_X - 0x01;",
+	"MOVX:1 R00, @A_R7_X - 0x01;",
         "MOV R08, A_R7_BASE;",
 	/* Begin A_Rx_LENG register dump. */
 	"MOV_P @A_R6_X += A_MD6, R00 :\n\
@@ -287,7 +287,7 @@ static const char *reg_dump_func_start_asm[] = {
 	"MOV_P @A_R6_X_INC, R00 :\n\
 	 MOV_P @A_R6_Y_INC, R08 /\n\
 	 NOP;",
-	"MOVX_1 R00, @A_R7_Y - 0x01;",
+	"MOVX:1 R00, @A_R7_Y - 0x01;",
         "MOV R08, A_R7_LENG;",
 };
 
@@ -297,23 +297,23 @@ static const char *reg_dump_exit_asm[] = {
 	 MOV_P @A_R6_Y_INC, R08 /\n\
 	 NOP;",
 	/* Restore A_R6_BASE/LENG register values. */
-	"MOVX_2 R00, @A_R7_X - 0x001 :\n\
-         MOVX_2 R01, @A_R7_Y - 0x001;",
+	"MOVX:2 R00, @A_R7_X - 0x001 :\n\
+         MOVX:2 R01, @A_R7_Y - 0x001;",
         "MOV A_R6_BASE, R00 :\n\
          MOV A_R6_LENG, R01;",
 	/* Restore A_R6/A_R6_MDFR and registers 0-3/8-11. */
-	"MOVX_2 A_R6,      @A_R7_X - 0x002 :\n\
-         MOVX_2 A_R6_MDFR, @A_R7_Y - 0x002;",
-	"MOVX_2 R02, @A_R7_X - 0x003 :\n\
-         MOVX_2 R03, @A_R7_Y - 0x003;",
-	"MOVX_2 R00, @A_R7_X - 0x004 :\n\
-         MOVX_2 R01, @A_R7_Y - 0x004;",
-	"MOVX_2 R08, @A_R7_X - 0x005 :\n\
-         MOVX_2 R09, @A_R7_Y - 0x005;",
-	"MOVX_2 R10, @A_R7_X - 0x006 :\n\
-         MOVX_2 R11, @A_R7_Y - 0x006;",
+	"MOVX:2 A_R6,      @A_R7_X - 0x002 :\n\
+         MOVX:2 A_R6_MDFR, @A_R7_Y - 0x002;",
+	"MOVX:2 R02, @A_R7_X - 0x003 :\n\
+         MOVX:2 R03, @A_R7_Y - 0x003;",
+	"MOVX:2 R00, @A_R7_X - 0x004 :\n\
+         MOVX:2 R01, @A_R7_Y - 0x004;",
+	"MOVX:2 R08, @A_R7_X - 0x005 :\n\
+         MOVX:2 R09, @A_R7_Y - 0x005;",
+	"MOVX:2 R10, @A_R7_X - 0x006 :\n\
+         MOVX:2 R11, @A_R7_Y - 0x006;",
 	/* Restore stack register value back to initial value. */
-	"I_ADD A_R7, A_R7, #-6;",
+	"ADD A_R7, A_R7, #-6;",
 	"RET;",
 };
 
