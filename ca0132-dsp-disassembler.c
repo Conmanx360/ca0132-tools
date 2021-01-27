@@ -11,7 +11,7 @@ typedef struct {
 	uint32_t cur_op_len;
 
 	uint32_t cur_addr;
-	const char *cur_op_str;
+	char cur_op_str[0x100];
 
 	uint8_t offset_addr_op_set;
 	uint16_t offset_addr;
@@ -625,6 +625,7 @@ static void get_op_operands(dsp_main *data, const dsp_op_info *op_info,
 	uint32_t i, src_mdfr, src_dst_swap;
 	operand_data op_data_tmp;
 	const char *op_str;
+	char buf[0x10];
 
 	src_dst_swap = op_info->src_dst_swap;
 	src_mdfr = op_info->src_mdfr[0];
@@ -660,14 +661,18 @@ static void get_op_operands(dsp_main *data, const dsp_op_info *op_info,
 		}
 	}
 
-	data->cur_op_str = op_str;
-	printf("%s ", op_str);
+	strcpy(data->cur_op_str, op_str);
+	if (!parallel_op) {
+		sprintf(buf, ":%d", data->cur_op_len);
+		strcat(data->cur_op_str, buf);
+	}
+	printf("%s ", data->cur_op_str);
 
 	for (i = 0; i < operand_cnt; i++) {
 		memset(&op_data_tmp, 0, sizeof(op_data_tmp));
 		tmp = &operand_loc[i];
 
-		op_data_tmp.op_str       = op_str;
+		op_data_tmp.op_str       = data->cur_op_str;
 		op_data_tmp.operand_val  = get_op_operand(data, tmp);
 		op_data_tmp.operand_type = tmp->operand_type;
 		op_data_tmp.operand_dir  = tmp->operand_dir;
@@ -699,7 +704,7 @@ static void get_op_operands(dsp_main *data, const dsp_op_info *op_info,
  * Keep these probably.
  */
 static void print_op(dsp_main *data, const dsp_op_info *op_info,
-		const op_operand_loc_layout *loc_layout)
+		const op_operand_loc_layout *loc_layout, uint8_t is_p_op)
 {
 	const operand_loc_descriptor *loc_descriptors;
 	uint32_t i, operand_cnt, final;
@@ -713,7 +718,7 @@ static void print_op(dsp_main *data, const dsp_op_info *op_info,
 	 * Get the operand values from the locations described in the
 	 * descriptors.
 	 */
-	get_op_operands(data, op_info, loc_descriptors, operand_cnt, op_data, 0);
+	get_op_operands(data, op_info, loc_descriptors, operand_cnt, op_data, is_p_op);
 
 	/* Next up: print the operands. */
 	for (i = final = 0; i < operand_cnt; i++) {
@@ -780,7 +785,7 @@ static void get_parallel_op_data(dsp_main *data, const dsp_op_info *op_info)
 	if (!loc_layout)
 		return;
 
-	print_op(data, p_op, loc_layout);
+	print_op(data, p_op, loc_layout, 1);
 	printf(" /");
 	printf("\n        ");
 }
@@ -841,7 +846,7 @@ static void get_op_data(dsp_main *data, const dsp_op_info *op_info)
 	if ((data->cur_op_len > 1) && loc_layout->supports_opt_args)
 		get_parallel_op_data(data, op_info);
 
-	print_op(data, op_info, loc_layout);
+	print_op(data, op_info, loc_layout, 0);
 	printf(";");
 }
 
