@@ -21,6 +21,7 @@ all audio streams are routed through it and it's DMA controllers.
   - [DMA Configuration Registers](#dma-configuration-registers)
   - [XGPRAM/YGPRAM](#xgpramygpram)
 - [Opcodes/Assembly](#opcodesassembly)
+  - [Opcodes](#opcodes)
   - [Assembly Syntax](#assembly-syntax)
   - [Main Instructions](#main-instructions)
   - [Parallel Instructions](#parallel-instructions)
@@ -441,7 +442,12 @@ XGPRAM\_000 seems to store the original call stack address.
 | 0x600-0x60f | YGPRAM\_000-YGPRAM\_015 |
 
 
-## Opcodes/Assembly:
+# Opcodes/Assembly:
+Below are explanations as to how opcodes are encoded, the custom assembly syntax, and
+descriptions of instruction behavior.
+
+
+## Opcodes:
 According to Creative, the Quartet DSP has 235 opcodes. From testing, opcodes seem
 to be 8-bits, and come in four different lengths.
 
@@ -497,7 +503,7 @@ moves R03 into the address stored at A\_R7 in YRAM, and increments the address r
 modifier value. It also moves the constant register with the value 0x02 into R02.
 
 
-### Assembly Syntax:
+## Assembly Syntax:
 The basic syntax is:
 
 
@@ -554,7 +560,95 @@ MOV R00, R01 :
 MOV R06, R07;
 ```
 
-### Main Instructions:
+## Main Instructions:
+According to Creative, there are 235 main instructions. I will detail the ones I have found out here.
+
+### MOV Based Instructions:
+MOV based instructions all have two operands, a source and a destination.
+
+#### Register ranges:
+Register ranges for each instruction length are as follows:
 
 
-### Parallel Instructions:
+##### Single length register range:
+For single data path, both source and destination registers have a range of 7-bits, so:
+
+|   Length/Encoding |            Range             |
+| ----------------- | ---------------------------- |
+| Source            | 7-bits, R00-@A\_R7\_INC\_REG.|
+| Destination       | 7-bits, R00-@A\_R7\_INC\_REG.|
+
+For dual data path, each data path has a different range.
+
+|   Length/Encoding |            Range             |
+| ----------------- | ---------------------------- |
+| Source0           | 4-bits, R00-R15.             |
+| Destination0      | 3-bits, R00-R07.             |
+| Source1           | 4-bits, R00-R15.             |
+| Destination1      | 3-bits, R08-R15. Base 8.     |
+
+##### Double length register range:
+Double length moves with a single data path can read/write any register except
+for XGPRAM/YGPRAM. There are also some alternate encodings that allow for
+XRAM/YRAM address literals. Below are the possible ranges:
+
+
+|   Length/Encoding |            Range                    |
+| ----------------- | ----------------------------------- |
+| Source            | 10-bits, R00-DMA\_CFG\_ACTIVE\_REG. |
+| Destination       | 10-bits, R00-DMA\_CFG\_ACTIVE\_REG. |
+
+
+Dual data path:
+|   Length/Encoding |            Range             |
+| ----------------- | ---------------------------- |
+| Source0           | 4-bits, R00-R15.             |
+| Destination0      | 4-bits, R00-R15.             |
+| Source1           | 4-bits, R00-R15.             |
+| Destination1      | 4-bits, R00-R15.             |
+
+
+Literal encoding:
+Literal operands take the form of `@#0x0000_X` or `@#0x0000_Y` for X and Y RAM, respectively.
+|   Length/Encoding  |            Range                   |
+| -----------------  | ---------------------------------- |
+| Source/Dest Reg    | 4-bits, R00-R15.                  |
+| Source/Dest Literal| 16-bits, 0x0000-0xffff XRAM/YRAM. |
+
+
+##### Quad length register range:
+Quad length moves always use both data paths, and have the full 11-bit register range. Quad length moves
+are the only way to read/write XGPRAM/YGPRAM.
+
+Dual data path (default):
+|   Length/Encoding |            Range              |
+| ----------------- | ----------------------------- |
+| Source0           | 11-bits, R00-YGPRAM\_015.     |
+| Destination0      | 11-bits, R00-YGPRAM\_015.     |
+| Source1           | 11-bits, R00-YGPRAM\_015.     |
+| Destination1      | 11-bits, R00-YGPRAM\_015.     |
+
+### MOV/MOV\_T1/MOV\_T2:
+The main MOV instructions come in three types.
+
+
+- MOV is a regular move, and moves between all register normally.
+- MOV\_T1 Moves the upper 32-bits of R04/R05/R12/R13 (accumulators.)
+- MOV\_T2 moves the upper 8 bits of R04/R05/R12/R13.
+
+
+### MOV with source modifiers:
+The main MOV instruction can also be used with source modifiers, which are:
+
+- Increment, example: `MOV R00, R01++;`.
+- Decrement, example: `MOV R00, R01--;`.
+- Rotate right by 1, example: `MOV R00, R01 >> 1;`.
+- Rotate left  by 1, example: `MOV R00, R01 << 1;`.
+
+These can only be used with regular MOV instructions, so MOV\_T1 and MOV\_T2 are incompatible.
+Length two literals are compatible.
+
+
+
+
+## Parallel Instructions:
