@@ -8,6 +8,21 @@ Unless firmware is loaded, the DSP is disabled. If the firmware is uploaded,
 the DSP is taken out of it's halt state and set to run. Once the DSP is running,
 all audio streams are routed through it and it's DMA controllers.
 
+## Sections:
+- [Registers](#registers)
+  - [Local Hardware Registers](#local-hardware-registers)
+  - [Address/Address Modifier Registers](#addressaddress-modifier-registers)
+  - [Constant Registers](#constant-registers)
+  - [Timer Registers](#timer-registers)
+  - [Indirect Address Registers](#indirect-address-registers)
+  - [Status Registers](#status-registers)
+  - [Address Register Base/Length Registers](#address-register-baselength-registers)
+  - [Bitmask Registers](#bitmask-registers)
+  - [DMA Configuration Registers](#dma-configuration-registers)
+  - [XGPRAM/YGPRAM](#xgpramygpram)
+
+
+
 ## Quartet DSP overview:
 First, a disclaimer: There is very little information online on this DSP, and
 everything I know about it I've learned through reverse engineering or reading
@@ -172,7 +187,7 @@ seem to be mainly floating point constants.
 | 0x34b | CR\_F\_SQRT\_0.5 |
 
 
-### Timer registers:
+### Timer Registers:
 Timer related registers, seemingly with one for each DSP. I haven't done
 much testing with them, but it seems that the \_PER\_ENB register is related
 to which interrupt is signaled when the timer overflows and what value to 
@@ -194,7 +209,7 @@ to count to before signaling an interrupt and resetting back to 0.
 | 0x35e | TIME3\_PER\_ENB |
 | 0x35f | TIME3\_COUNTER  |
 
-### Indirect address registers:
+### Indirect Address Registers:
 These registers allow for indirectly reading/writing the data stored at the address
 in the respective address register, as well as reading/writing and incrementing the 
 address afterwards by the respective address modifier register.
@@ -234,7 +249,7 @@ address afterwards by the respective address modifier register.
 | 0x37e | @A\_R7\_X\_INC\_REG |
 | 0x37f | @A\_R7\_Y\_INC\_REG |
 
-### Status registers.
+### Status Registers.
 These are status related registers.
 
 COND\_REG is the register that contains flags which are set after a math operation,
@@ -267,7 +282,7 @@ The rest are self explanatory, the only one I'm unsure of is the STACK\_FLAG\_RE
 | 0x38b | PROG\_CNT\_REG     |
 
 
-### Address register base/length registers:
+### Address Register Base/Length Registers:
 These registers are used for looping through a series of addresses. When the
 respective address register get's 'LENG' offset away from the base, the address
 loops back around.
@@ -300,7 +315,7 @@ to zero it out that you do that first before setting the address register.
 
 
 
-### Bitmask registers:
+### Bitmask Registers:
 These registers seem to be intended for bitwise use. I don't know too much about
 them, other than that the INT\_CONT\_PEND\_REG is set by the onboard 8051 when an
 SCP command is sent. I'm assuming that INT\_CONT\_SERV\_REG is used to signal that
@@ -327,7 +342,7 @@ I'm not sure what the GPIO\_REG pins are connected to, if anything.
 
 
 
-### DMA Configuration registers:
+### DMA Configuration Registers:
 These registers are used to configure the DSP's DMA controllers.
 
 
