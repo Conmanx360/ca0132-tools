@@ -20,7 +20,10 @@ all audio streams are routed through it and it's DMA controllers.
   - [Bitmask Registers](#bitmask-registers)
   - [DMA Configuration Registers](#dma-configuration-registers)
   - [XGPRAM/YGPRAM](#xgpramygpram)
-
+- [Opcodes/Assembly](#opcodesassembly)
+  - [Assembly Syntax](#assembly-syntax)
+  - [Main Instructions](#main-instructions)
+  - [Parallel Instructions](#parallel-instructions)
 
 
 ## Quartet DSP overview:
@@ -436,3 +439,122 @@ XGPRAM\_000 seems to store the original call stack address.
 | ------------| ----------------------- |
 | 0x400-0x40f | XGPRAM\_000-XGPRAM\_015 |
 | 0x600-0x60f | YGPRAM\_000-YGPRAM\_015 |
+
+
+## Opcodes/Assembly:
+According to Creative, the Quartet DSP has 235 opcodes. From testing, opcodes seem
+to be 8-bits, and come in four different lengths.
+
+
+For length one instructions, the opcode starts at bit 24. Example:
+
+
+`0x00c80000`
+
+
+Has opcode 0xc8, which is MOV. To get length 2 MOV, we shift the opcode to the right
+by 1, and set the most significant bit (which in the Quartet DSP's case, is bit 25). Example:
+
+
+`0x01640000`
+
+
+To get the length 4 instruction, we set bits 25 and 24, giving us:
+
+
+`0x01e40000`
+
+
+All instructions have 3 different lengths, each with a different operand layout. For instance:
+
+
+
+```
+0x00c80221 is MOV:1 R01, CR_0x00000001;
+
+
+0x01647fff 0x01f01643 is MOV:2 R01, CR_0x00000001;
+
+
+0x01e47fff 0x01ffe000 0x00180990 0x01301321 is MOV:4 R01, CR_0x00000001 : R01, CR_0x00000001;
+(The part after the colon is for data path 2, length four moves always need to use both data
+paths.)
+```
+
+
+Some length 2 and 4 instructions can also include a parallel instruction, to execute at the
+same time as the main instruction. An example:
+
+```
+MOV_P @A_R7_X_INC, R02 : 
+      @A_R7_Y_INC, R03 / 
+MOV R02, CR_0x00000002;
+```
+
+
+Gives opcode `0x0164447f 0x01f02645`, which moves R02 into the address stored at A\_R7 in xram,
+moves R03 into the address stored at A\_R7 in YRAM, and increments the address register by it's
+modifier value. It also moves the constant register with the value 0x02 into R02.
+
+
+### Assembly Syntax:
+The basic syntax is:
+
+
+dst\_reg = src\_reg:
+`[INSTRUCTION] [DST_REG], [SRC_REG];`
+
+r\_reg = x\_reg +/-/\* y\_reg:
+`[INSTRUCTION] [R_REG], [X_REG], [Y_REG];`
+
+
+An instruction at the start, with operands separated by commas and instructions terminated
+with a semicolon.
+
+
+Instructions that can use the second data path have their operands split by a colon.
+dst0\_reg = src0\_reg : dst1\_reg = src1\_reg:
+`[INSTRUCTION] [DST0_REG], [SRC0_REG] : [DST1_REG], [SRC1_REG];`
+
+
+Instructions can optionally have a `:1`, `:2`, or `:4` as a suffix to signify the
+desired instruction length. If one is not chosen, the assembler will always attempt
+to use the shortest instruction possible. Example:
+
+`MOV:4 R00, R02 : R01, R03;`
+
+This gives us a length four move instruction.
+
+
+Parallel instructions are always added at the start, and are terminated with a forward slash
+symbol. Example:
+
+```
+MOV_P @A_R0_X, R02 /
+MOV R00, R01;
+```
+
+Parallel instructions can also use both data paths, and have the same syntax as main instructions. Example:
+
+```
+MOV_P @A_R0_X, R02 : @A_R0_Y, R03 /
+MOV R00, R01;
+```
+
+Parallel ops cannot have a length suffix.
+
+
+It is also valid to print the instruction twice, which is what the disassembler does. This sometimes
+helps when looking at many lines of assembly at once. Example:
+
+```
+MOV_P @A_R0_X, R02 :
+MOV_P @A_R0_Y, R03 /
+MOV R00, R01 :
+MOV R06, R07;
+```
+
+### Main Instructions:
+
+
+### Parallel Instructions:
