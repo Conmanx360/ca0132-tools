@@ -793,7 +793,9 @@ typedef struct {
 	dsp_asm_p_op_data valid_p_ops[2];
 
 	dsp_asm_op_data op, p_op;
+
 	uint32_t opcode[4];
+	uint32_t op_len;
 } dsp_asm_data;
 
 typedef struct {

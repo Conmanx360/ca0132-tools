@@ -1939,6 +1939,16 @@ const op_operand_layout *get_op_layout(uint32_t layout_id)
 		return NULL;
 }
 
+uint32_t get_op_layout_id(const dsp_op_info *info, uint32_t len)
+{
+	if (len == 4)
+		return info->layout_id[OP_LAYOUT_LEN_4];
+	else if (len == 2)
+		return info->layout_id[OP_LAYOUT_LEN_2];
+
+	return info->layout_id[OP_LAYOUT_LEN_1];
+}
+
 static const dsp_op_info asm_ops[] = {
 	{ .op_str = "NOP",
 	  .op = 0x0000,
@@ -3946,6 +3956,31 @@ uint32_t get_dsp_op_len(uint32_t op)
 	return len;
 }
 
+static uint32_t create_dsp_opcode(uint32_t op, uint32_t len)
+{
+	uint32_t opcode;
+
+	if (len > 1) {
+		opcode = 0x01000000 | (op << 15);
+		if (len == 4)
+			opcode |= 0x00800000;
+	} else {
+		opcode = op << 16;
+	}
+
+	return opcode;
+}
+
+static uint32_t get_op_len_from_len_id(uint32_t len_id)
+{
+	if (len_id == OP_LAYOUT_LEN_4)
+		return 4;
+	else if (len_id == OP_LAYOUT_LEN_2)
+		return 2;
+
+	return 1;
+}
+
 const dsp_op_info *get_dsp_op_info(uint32_t opcode)
 {
 	uint32_t i;
@@ -4370,17 +4405,14 @@ static void create_op_words(dsp_asm_data *data, uint32_t *op_words)
 	else
 		p_op = NULL;
 
-	len = get_dsp_op_len(op->opcode << 16);
+	len = data->op_len;
 	src_dst_swap = op->src_dst_swap;
 	loc_layout = op->loc_layout;
 
 	memset(buf, 0, sizeof(buf));
-	buf[0] = (op->opcode << 16);
-	if (op->use_op_mdfr_bit) {
+	buf[0] = op->opcode;
+	if (op->use_op_mdfr_bit)
 		set_bits_in_op_words(buf, op->mdfr_bit, 1, 1);
-		if (op->mdfr_bit_type == OP_MDFR_BIT_TYPE_SRC_DST_SWAP)
-			src_dst_swap = 1;
-	}
 
 
 	if ((loc_layout) && !p_op && loc_layout->supports_opt_args) {
@@ -4428,17 +4460,14 @@ static void create_op_words(dsp_asm_data *data, uint32_t *op_words)
 	 */
 	src_dst_swap = 0;
 	if (p_op) {
-		buf[0] |= (p_op->opcode << 9);
+		buf[0] |= p_op->opcode;
 		loc_layout = data->p_op.loc_layout;
 		operand_cnt = loc_layout->operand_cnt;
 		loc_descriptors = loc_layout->operand_loc;
 		src_dst_swap = p_op->src_dst_swap;
 
-		if (data->p_op.use_op_mdfr_bit) {
+		if (p_op->use_op_mdfr_bit)
 			set_bits_in_op_words(buf, p_op->mdfr_bit, 1, 1);
-			if (p_op->mdfr_bit_type == OP_MDFR_BIT_TYPE_SRC_DST_SWAP)
-				src_dst_swap = 1;
-		}
 
 		set_bits_in_op_words(buf, loc_layout->layout_val_loc.part1_bit_start,
 				loc_layout->layout_val_loc.part1_bits, loc_layout->layout_val);
@@ -5185,75 +5214,23 @@ static uint32_t check_src_mdfr_compatibility(uint32_t src_mdfr1, uint32_t src_md
  * layout compatibility. If it's compatible, we've found a usable op.
  */
 static uint32_t check_op_layout_compatibility(const dsp_op_info *info,
-		dsp_asm_op_data *data, uint32_t is_p_op)
+		dsp_asm_op_data *data, uint32_t layout_id, uint32_t is_p_op)
 {
-	uint32_t mdfr_bit_set, mdfr_bit_type, op_src_mdfr, op_src_dst_swap;
+	uint32_t src_mdfr, src_dst_swap;
 	const op_operand_layout *layout;
-	uint32_t layout_id;
 
-
-	mdfr_bit_set = data->use_op_mdfr_bit;
-	layout_id = info->layout_id[0];
-	op_src_mdfr = info->src_mdfr[0];
-	op_src_dst_swap = info->src_dst_swap;
-	mdfr_bit_type = info->mdfr_bit_type;
-
-	/*
-	 * If the modifier bit is set before calling, i.e because we're using
-	 * the alternative op string, then change the default values
-	 * according to the mdfr_bit_type.
-	 */
-	if (mdfr_bit_set) {
-		switch (mdfr_bit_type) {
-		case OP_MDFR_BIT_TYPE_USE_ALT_LAYOUT:
-			layout_id = info->alt_layout_id;
-			break;
-
-		case OP_MDFR_BIT_TYPE_SRC_DST_SWAP:
-			op_src_dst_swap = 1;
-			break;
-
-		case OP_MDFR_BIT_TYPE_USE_ALT_MDFR:
-			op_src_mdfr = info->src_mdfr[1];
-			break;
-
-		default:
-			break;
-		}
-	}
-
+	/* No layout for this length, so obviously incompatible. */
 	if (layout_id == OP_LAYOUT_NONE)
 		return 0;
 
 	/*
 	 * If we have no operands and the layout id is NOP, we're compatible.
-	 * Unless it's a single length NOP and we need opt args.
+	 * Single length was ruled out earlier.
 	 */
 	if (!data->operand_cnt && (layout_id == OP_LAYOUT_NOP) && !is_p_op) {
-		if (data->needs_alt_args && (get_dsp_op_len(info->op << 16) < 2))
-			return 0;
-
 		layout = get_op_layout(layout_id);
 		data->loc_layout = &layout->loc_layouts[0];
 		return 1;
-	}
-
-	/*
-	 * Check if the src mdfrs are compatible. If they're not, and the op
-	 * has an alternative src mdfr, test that too.
-	 */
-	if (!check_src_mdfr_compatibility(data->src_mdfr, op_src_mdfr)) {
-		if (!mdfr_bit_set && mdfr_type_is_alt_src_mdfr(mdfr_bit_type)) {
-			if (!check_src_mdfr_compatibility(data->src_mdfr, info->src_mdfr[1]))
-				return 0;
-
-			/* The alternative works, set it. */
-			op_src_mdfr = info->src_mdfr[1];
-			data->use_op_mdfr_bit = 1;
-			mdfr_bit_set = 1;
-		} else {
-			return 0;
-		}
 	}
 
 	if (is_p_op)
@@ -5262,64 +5239,14 @@ static uint32_t check_op_layout_compatibility(const dsp_op_info *info,
 		layout = get_op_layout(layout_id);
 
 	/*
-	 * Now we check if any of the default layouts have compatible operand
-	 * types with our asm op.
+	 * Now we check if any of this lengths operand layouts are compatible.
 	 */
-	if (check_op_layout_operand_compatibility(layout, data, op_src_dst_swap, op_src_mdfr))
+	src_dst_swap = info->src_dst_swap;
+	src_mdfr = info->src_mdfr[0];
+	if (check_op_layout_operand_compatibility(layout, data, src_dst_swap, src_mdfr))
 		return 1;
 
-	/* if we can swap the src/dst, try it and see if it works. */
-	if (!mdfr_bit_set && mdfr_type_is_src_dst_swap(mdfr_bit_type)) {
-		if (check_op_layout_operand_compatibility(layout, data, 1, op_src_mdfr)) {
-			data->use_op_mdfr_bit = 1;
-			mdfr_bit_set = 1;
-
-			return 1;
-		}
-	}
-
-	/* if we can use an alt layout, try this and see if it works. */
-	if (!mdfr_bit_set && mdfr_type_is_alt_layout(mdfr_bit_type)) {
-		if (is_p_op)
-			layout = get_p_op_layout(info->alt_layout_id);
-		else
-			layout = get_op_layout(info->alt_layout_id);
-
-		if (check_op_layout_operand_compatibility(layout, data, op_src_dst_swap, op_src_mdfr)) {
-			data->use_op_mdfr_bit = 1;
-			return 1;
-		}
-	}
-
 	return 0;
-}
-
-/*
- * Find an op_info structure to match our assembly info.
- */
-static const dsp_op_info *find_compatible_op_info(dsp_asm_data *data,
-		const dsp_op_info *start)
-{
-	const dsp_op_info *op_info;
-	uint8_t alt_str_match;
-
-	op_info = start;
-	op_info = find_dsp_op(data->op.op_str, op_info, &alt_str_match);
-	while (op_info) {
-		if (alt_str_match)
-			data->op.use_op_mdfr_bit = 1;
-		else
-			data->op.use_op_mdfr_bit = 0;
-
-		/* If we've found a matching opcode, return. */
-		if (check_op_layout_compatibility(op_info, &data->op, 0)) {
-			return op_info;
-		}
-
-		op_info = find_dsp_op(data->op.op_str, op_info, &alt_str_match);
-	}
-
-	return NULL;
 }
 
 /*
@@ -5330,6 +5257,7 @@ static const dsp_op_info *find_compatible_p_op_info(dsp_asm_data *data,
 {
 	const dsp_op_info *op_info;
 	uint8_t alt_str_match;
+	uint32_t layout_id;
 
 	op_info = start;
 	op_info = find_dsp_p_op(data->p_op.op_str, op_len, op_info, &alt_str_match);
@@ -5339,8 +5267,9 @@ static const dsp_op_info *find_compatible_p_op_info(dsp_asm_data *data,
 		else
 			data->p_op.use_op_mdfr_bit = 0;
 
+		layout_id = op_info->layout_id[0];
 		/* If we've found a p_op that matches, return. */
-		if (check_op_layout_compatibility(op_info, &data->p_op, 1))
+		if (check_op_layout_compatibility(op_info, &data->p_op, layout_id, 1))
 			return op_info;
 
 		op_info = find_dsp_p_op(data->p_op.op_str, op_len, op_info, &alt_str_match);
@@ -5349,9 +5278,15 @@ static const dsp_op_info *find_compatible_p_op_info(dsp_asm_data *data,
 	return NULL;
 }
 
-static void set_asm_op_data_from_op_info(dsp_asm_op_data *data, const dsp_op_info *op_info)
+static void set_asm_op_data_from_op_info(dsp_asm_op_data *data, const dsp_op_info *op_info,
+		uint32_t len)
 {
-	data->opcode = op_info->op;
+	/* If len is 0, it's a p_op. This should be removed in later patches. */
+	if (len)
+		data->opcode = create_dsp_opcode(op_info->op, len);
+	else
+		data->opcode = op_info->op;
+
 	data->src_dst_swap = op_info->src_dst_swap;
 	data->mdfr_bit = op_info->mdfr_bit;
 	data->mdfr_bit_type = op_info->mdfr_bit_type;
@@ -5365,7 +5300,11 @@ static void set_asm_op_data_from_op_info(dsp_asm_op_data *data, const dsp_op_inf
 static void set_asm_op_data_from_p_op_data(dsp_asm_op_data *data,
 		dsp_asm_p_op_data *p_op_data)
 {
-	data->opcode = p_op_data->opcode;
+	/*
+	 * Store opcode with bitshift already done, so when we go to set it
+	 * all we have to do is use |=.
+	 */
+	data->opcode = p_op_data->opcode << 9;
 	data->loc_layout = p_op_data->loc_layout;
 	data->src_dst_swap = p_op_data->src_dst_swap;
 	data->mdfr_bit = p_op_data->mdfr_bit;
@@ -5439,36 +5378,62 @@ static uint32_t get_compatible_op_len(dsp_asm_data *data)
  */
 static void find_compatible_asm_opcode(dsp_asm_data *data)
 {
-	uint32_t len, len_compat_mask;
+	uint32_t len_compat_mask, layout_id, matched, i;
 	const dsp_op_info *op_info;
+	uint8_t alt_str_match;
+	dsp_asm_op_data *op;
 
+	/* Get compatible op_lengths. */
 	len_compat_mask = get_compatible_op_len(data);
 
+	op = &data->op;
 	op_info = NULL;
-	while ((op_info = find_compatible_op_info(data, op_info))) {
-		if (data->has_p_op) {
-			/*
-			 * If the length is compatible, we've found our op.
-			 * Set the appropriate p_op data. If not, continue.
-			 */
-			len = get_dsp_op_len(op_info->op << 16);
-			if (!(len & len_compat_mask))
+	while ((op_info = find_dsp_op(data->op.op_str, op_info, &alt_str_match))) {
+		if (alt_str_match)
+			data->op.use_op_mdfr_bit = 1;
+		else
+			data->op.use_op_mdfr_bit = 0;
+
+		/*
+		 * Before even checking the layout, check if the src_mdfr is
+		 * compatible.
+		 */
+		if (!check_src_mdfr_compatibility(op->src_mdfr, op_info->src_mdfr[0]))
+			continue;
+
+		/* Check each compatible lengths op layout. */
+		for (i = matched = 0; i < OP_LAYOUT_LEN_CNT; i++) {
+			/* If the current length is incompatible, continue. */
+			if (!((1 << i) & len_compat_mask))
 				continue;
 
-			if (len == 2)
+			layout_id = op_info->layout_id[i];
+			if (!check_op_layout_compatibility(op_info, op, layout_id, 0))
+				continue;
+
+			/* We have found a compatible opcode. */
+			data->op_len = get_op_len_from_len_id(i);
+
+			/* Set p_op data if we have it. */
+			if (data->has_p_op && (data->op_len == 2))
 				set_asm_op_data_from_p_op_data(&data->p_op,
 						&data->valid_p_ops[0]);
-			else
+
+			if (data->has_p_op && (data->op_len == 4))
 				set_asm_op_data_from_p_op_data(&data->p_op,
 						&data->valid_p_ops[1]);
-			break;
-		} else {
+
+			matched = 1;
 			break;
 		}
+
+		if (matched)
+			break;
+
 	}
 
 	if (op_info)
-		set_asm_op_data_from_op_info(&data->op, op_info);
+		set_asm_op_data_from_op_info(&data->op, op_info, data->op_len);
 }
 
 /*
@@ -5880,8 +5845,8 @@ static void extract_opcode_from_spec_op_str(dsp_asm_data *data)
 			return;
 		}
 
-		if (check_op_layout_compatibility(info, op, 0))
-			set_asm_op_data_from_op_info(op, info);
+		if (check_op_layout_compatibility(info, op, info->layout_id[0], 0))
+			set_asm_op_data_from_op_info(op, info, get_dsp_op_len(op->opcode << 16));
 	} else {
 		if (op->use_op_mdfr_bit && layout_set)
 			op->mdfr_bit = 9;
@@ -5904,7 +5869,7 @@ static void extract_opcode_from_spec_op_str(dsp_asm_data *data)
 			info = find_compatible_p_op_info(data, info,
 					get_dsp_op_len(op->opcode << 16));
 			if (info)
-				set_asm_op_data_from_op_info(p_op, info);
+				set_asm_op_data_from_op_info(p_op, info, 0);
 
 			return;
 		}
