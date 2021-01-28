@@ -25,6 +25,7 @@ all audio streams are routed through it and it's DMA controllers.
   - [Assembly Syntax](#assembly-syntax)
   - [Main Instructions](#main-instructions)
   - [Parallel Instructions](#parallel-instructions)
+  - [Register Ranges](#register-ranges)
 
 
 ## Quartet DSP overview:
@@ -566,28 +567,59 @@ According to Creative, there are 235 main instructions. I will detail the ones I
 ### MOV Based Instructions:
 MOV based instructions all have two operands, a source and a destination.
 
-#### Register ranges:
+
+### MOV/MOV\_T1/MOV\_T2:
+The main MOV instructions come in three types.
+
+
+- MOV is a regular move, and moves between all register normally.
+- MOV\_T1 Moves the upper 32-bits of R04/R05/R12/R13 (accumulators.)
+- MOV\_T2 moves the upper 8 bits of R04/R05/R12/R13.
+
+### MOV with source modifiers:
+The main MOV instruction can also be used with source modifiers, which are:
+
+- Increment, example: `MOV R00, R01++;`.
+- Decrement, example: `MOV R00, R01--;`.
+- Rotate right by 1, example: `MOV R00, R01 >> 1;`.
+- Rotate left  by 1, example: `MOV R00, R01 << 1;`.
+
+These can only be used with regular MOV instructions, so MOV\_T1 and MOV\_T2 are incompatible.
+Length two literals are compatible.
+
+### MOV Literals:
+MOV literals consistent of:
+
+- MOV, which is a normal literal MOV. Also has MOV\_T1 and MOV\_T2 variants.
+- MOV\_L, which moves only to the lower 16-bits. This should be used in 16-bit value sets. Has \_T1 and \_T2 variants.
+- MOV\_U, which moves only to the upper 16-bits. This should be used in 16-bit value sets. Only has \_T1 variant, as \_T2 is only 8-bits.
+
+
+## Parallel Instructions:
+
+## Register Ranges:
+
+### MOV SRC, DST Register Ranges:
 Register ranges for each instruction length are as follows:
 
-
-##### Single length register range:
+#### Single length register range:
 For single data path, both source and destination registers have a range of 7-bits, so:
 
-|   Length/Encoding |            Range             |
+|   Operand Type    |            Range             |
 | ----------------- | ---------------------------- |
 | Source            | 7-bits, R00-@A\_R7\_INC\_REG.|
 | Destination       | 7-bits, R00-@A\_R7\_INC\_REG.|
 
 For dual data path, each data path has a different range.
 
-|   Length/Encoding |            Range             |
+|   Operand Type    |            Range             |
 | ----------------- | ---------------------------- |
 | Source0           | 4-bits, R00-R15.             |
 | Destination0      | 3-bits, R00-R07.             |
 | Source1           | 4-bits, R00-R15.             |
 | Destination1      | 3-bits, R08-R15. Base 8.     |
 
-##### Double length register range:
+#### Double length register range:
 Double length moves with a single data path can read/write any register except
 for XGPRAM/YGPRAM. There are also some alternate encodings that allow for
 XRAM/YRAM address literals. Below are the possible ranges:
@@ -628,7 +660,7 @@ literal value for both destination registers. Literal value operands take the fo
 | Source1 Literal    | 16-bits, #0x0000-#0xffff. |
 
 
-##### Quad length register range:
+#### Quad length register range:
 Quad length moves always use both data paths, and have the full 11-bit register range. Quad length moves
 are the only way to read/write XGPRAM/YGPRAM.
 
@@ -650,31 +682,110 @@ data path.
 | Destination1       | 11-bits, R00-YGPRAM\_015.          | 
 | Source1 Literal    | 32-bits, #0x00000000-#0xffffffff   |
 
-### MOV/MOV\_T1/MOV\_T2:
-The main MOV instructions come in three types.
+### R = X Y Register Ranges:
+
+#### Single length register range:
+|  Operand Type  |            Range             |
+| -------------- | ---------------------------- |
+| R              | 5-bits, R00-A\_R7\_MDFR.     |
+| X              | 5-bits, R00-A\_R7\_MDFR.     |
+| Y              | 5-bits, R00-A\_R7\_MDFR.     |
+
+Dual Data Path:
+|  Operand Type     |            Range             |
+| ----------------- | ---------------------------- |
+| R0                | R04-R07, R12-R15.            |
+| X0                | R00-R01, R04-R05.            |
+| Y0                | R00-R03.                     |
+| R1                | R04-R07, R12-R15.            |
+| X1                | R08-R09, R12-R13.            |
+| Y1                | R07-R11.                     |
 
 
-- MOV is a regular move, and moves between all register normally.
-- MOV\_T1 Moves the upper 32-bits of R04/R05/R12/R13 (accumulators.)
-- MOV\_T2 moves the upper 8 bits of R04/R05/R12/R13.
+Literal Value:
+|  Operand Type  |        Range.                    |
+| -------------- | -------------------------------- |
+| R              | 4-bits, R00-R15.                 |
+| X              | 4-bits, R00-R15.                 |
+| Y              | 8-bit literal int, -0x80-0x7f.   |
 
-### MOV with source modifiers:
-The main MOV instruction can also be used with source modifiers, which are:
-
-- Increment, example: `MOV R00, R01++;`.
-- Decrement, example: `MOV R00, R01--;`.
-- Rotate right by 1, example: `MOV R00, R01 >> 1;`.
-- Rotate left  by 1, example: `MOV R00, R01 << 1;`.
-
-These can only be used with regular MOV instructions, so MOV\_T1 and MOV\_T2 are incompatible.
-Length two literals are compatible.
-
-### MOV Literals:
-MOV literals consistent of:
-
-- MOV, which is a normal literal MOV. Also has MOV\_T1 and MOV\_T2 variants.
-- MOV\_L, which moves only to the lower 16-bits. This should be used in 16-bit value sets. Has \_T1 and \_T2 variants.
-- MOV\_U, which moves only to the upper 16-bits. This should be used in 16-bit value sets. Only has \_T1 variant, as \_T2 is only 8-bits.
+#### Double length register range:
+|  Operand Type  |            Range             |
+| -------------- | ---------------------------- |
+| R              | 7-bits, R00-@A\_R7\_INC\_REG.|
+| X              | 7-bits, R00-@A\_R7\_INC\_REG.|
+| Y              | 7-bits, R00-@A\_R7\_INC\_REG.|
 
 
-## Parallel Instructions:
+
+Dual data path:
+|  Operand Type  |            Range             |
+| -------------- | ---------------------------- |
+| R0             |  R00-R15.                    |
+| X0             |  R00-R07.                    |
+| Y0             |  R00-R05, R12-R13.           |
+| R1             |  R00-R15.                    |
+| X1             |  R08-R15.                    |
+| Y1             |  R04-R05, R08-R11, R12-R13.  |
+
+
+Literal Address:
+Literal operands take the form of `@#0x0000_X` or `@#0x0000_Y` for X and Y RAM, respectively.
+|   Operand Type     |            Range                   |
+| -----------------  | ---------------------------------- |
+| R                  | 4-bits, R00-R15.                   |
+| X                  | 16-bits, 0x0000-0xffff XRAM/YRAM.  |
+| Y                  | 4-bits, R00-R15.                   |
+
+
+Literal Value:
+|   Operand Type     |            Range                    |
+| -----------------  | ----------------------------------- |
+| R                  | 11-bits, R00-YGPRAM\_015.           | 
+| X                  | 11-bits, R00-YGPRAM\_015.           | 
+| Y                  | 16-bit literal int, -0x8000-0x7fff. |
+
+
+#### Quad length register range:
+Single data path:
+|   Operand Type    |            Range              |
+| ----------------- | ----------------------------- |
+| R                 | 11-bits, R00-YGPRAM\_015.     |
+| X                 | 11-bits, R00-YGPRAM\_015.     |
+| Y                 | 11-bits, R00-YGPRAM\_015.     |
+
+
+Dual Data Path (without parallel op):
+|   Operand Type    |            Range              |
+| ----------------- | ----------------------------- |
+| R0                | 11-bits, R00-YGPRAM\_015.     |
+| X0                | 11-bits, R00-YGPRAM\_015.     |
+| Y0                | 11-bits, R00-YGPRAM\_015.     |
+| R1                | 11-bits, R00-YGPRAM\_015.     |
+| X1                | 11-bits, R00-YGPRAM\_015.     |
+| Y1                | 11-bits, R00-YGPRAM\_015.     |
+
+Dual Data Path (with parallel op):
+
+In this case, the second data path's register values must be in the same 4-bit range
+of the first data path's value. So, R15 cannot get A\R0, it can only get the other R00-R14 range.
+|   Operand Type    |            Range              |
+| ----------------- | ----------------------------- |
+| R0                | 11-bits, R00-YGPRAM\_015.     |
+| X0                | 11-bits, R00-YGPRAM\_015.     |
+| Y0                | 11-bits, R00-YGPRAM\_015.     |
+| R1                | Operand R0 + 4-bit offset.    |
+| X1                | Operand X0 + 4-bit offset.    |
+| Y1                | Operand Y0 + 4-bit offset.    |
+
+
+
+Literal Value:
+Length four literal value moves are 32-bits each, and can be different for each
+data path.
+|   Operand Type     |            Range                   |
+| -----------------  | ---------------------------------- |
+| Destination0       | 11-bits, R00-YGPRAM\_015.          | 
+| Source0 Literal    | 32-bits, #0x00000000-#0xffffffff   |
+| Destination1       | 11-bits, R00-YGPRAM\_015.          | 
+| Source1 Literal    | 32-bits, #0x00000000-#0xffffffff   |
