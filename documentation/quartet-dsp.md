@@ -593,14 +593,14 @@ for XGPRAM/YGPRAM. There are also some alternate encodings that allow for
 XRAM/YRAM address literals. Below are the possible ranges:
 
 
-|   Length/Encoding |            Range                    |
+|   Operand Type    |            Range                    |
 | ----------------- | ----------------------------------- |
 | Source            | 10-bits, R00-DMA\_CFG\_ACTIVE\_REG. |
 | Destination       | 10-bits, R00-DMA\_CFG\_ACTIVE\_REG. |
 
 
 Dual data path:
-|   Length/Encoding |            Range             |
+|   Operand Type    |            Range             |
 | ----------------- | ---------------------------- |
 | Source0           | 4-bits, R00-R15.             |
 | Destination0      | 4-bits, R00-R15.             |
@@ -608,12 +608,24 @@ Dual data path:
 | Destination1      | 4-bits, R00-R15.             |
 
 
-Literal encoding:
+Literal Address:
 Literal operands take the form of `@#0x0000_X` or `@#0x0000_Y` for X and Y RAM, respectively.
-|   Length/Encoding  |            Range                   |
+|   Operand Type     |            Range                   |
 | -----------------  | ---------------------------------- |
 | Source/Dest Reg    | 4-bits, R00-R15.                  |
 | Source/Dest Literal| 16-bits, 0x0000-0xffff XRAM/YRAM. |
+
+
+Literal Value:
+Length two literal value moves are limited to 16-bit values, and must be the same
+literal value for both destination registers. Literal value operands take the form of
+`#0xffff`.
+|   Operand Type     |            Range                   |
+| -----------------  | ---------------------------------- |
+| Destination0       | 11-bits, R00-YGPRAM\_015. | 
+| Source0 Literal    | 16-bits, #0x0000-#0xffff. |
+| Destination1       | 11-bits, R00-YGPRAM\_015. | 
+| Source1 Literal    | 16-bits, #0x0000-#0xffff. |
 
 
 ##### Quad length register range:
@@ -621,12 +633,22 @@ Quad length moves always use both data paths, and have the full 11-bit register 
 are the only way to read/write XGPRAM/YGPRAM.
 
 Dual data path (default):
-|   Length/Encoding |            Range              |
+|   Operand Type    |            Range              |
 | ----------------- | ----------------------------- |
 | Source0           | 11-bits, R00-YGPRAM\_015.     |
 | Destination0      | 11-bits, R00-YGPRAM\_015.     |
 | Source1           | 11-bits, R00-YGPRAM\_015.     |
 | Destination1      | 11-bits, R00-YGPRAM\_015.     |
+
+Literal Value:
+Length four literal value moves are 32-bits each, and can be different for each
+data path.
+|   Operand Type     |            Range                   |
+| -----------------  | ---------------------------------- |
+| Destination0       | 11-bits, R00-YGPRAM\_015.          | 
+| Source0 Literal    | 32-bits, #0x00000000-#0xffffffff   |
+| Destination1       | 11-bits, R00-YGPRAM\_015.          | 
+| Source1 Literal    | 32-bits, #0x00000000-#0xffffffff   |
 
 ### MOV/MOV\_T1/MOV\_T2:
 The main MOV instructions come in three types.
@@ -635,7 +657,6 @@ The main MOV instructions come in three types.
 - MOV is a regular move, and moves between all register normally.
 - MOV\_T1 Moves the upper 32-bits of R04/R05/R12/R13 (accumulators.)
 - MOV\_T2 moves the upper 8 bits of R04/R05/R12/R13.
-
 
 ### MOV with source modifiers:
 The main MOV instruction can also be used with source modifiers, which are:
@@ -648,7 +669,12 @@ The main MOV instruction can also be used with source modifiers, which are:
 These can only be used with regular MOV instructions, so MOV\_T1 and MOV\_T2 are incompatible.
 Length two literals are compatible.
 
+### MOV Literals:
+MOV literals consistent of:
 
+- MOV, which is a normal literal MOV. Also has MOV\_T1 and MOV\_T2 variants.
+- MOV\_L, which moves only to the lower 16-bits. This should be used in 16-bit value sets. Has \_T1 and \_T2 variants.
+- MOV\_U, which moves only to the upper 16-bits. This should be used in 16-bit value sets. Only has \_T1 variant, as \_T2 is only 8-bits.
 
 
 ## Parallel Instructions:
