@@ -26,6 +26,10 @@ all audio streams are routed through it and it's DMA controllers.
   - [Main Instructions](#main-instructions)
   - [Parallel Instructions](#parallel-instructions)
   - [Register Ranges](#register-ranges)
+    - [MOV SRC, DST](#mov-src-dst-register-ranges)
+    - [MOVX A\_REG, OFFSET](#movx-a_reg-offset-register-ranges)
+    - [R = X Y](#r--x-y-register-ranges)
+    - [R = X Y A](#r--x-y-a-register-ranges)
 
 
 ## Quartet DSP overview:
@@ -598,20 +602,19 @@ MOV literals consistent of:
 ## Parallel Instructions:
 
 ## Register Ranges:
+Register ranges for each instruction type and length.
+
 
 ### MOV SRC, DST Register Ranges:
-Register ranges for each instruction length are as follows:
-
-#### Single length register range:
-For single data path, both source and destination registers have a range of 7-bits, so:
-
+#### Single Length Register Range:
+##### Single Data Path:
 |   Operand Type    |            Range             |
 | ----------------- | ---------------------------- |
 | Source            | 7-bits, R00-@A\_R7\_INC\_REG.|
 | Destination       | 7-bits, R00-@A\_R7\_INC\_REG.|
 
-For dual data path, each data path has a different range.
 
+##### Dual Data Path:
 |   Operand Type    |            Range             |
 | ----------------- | ---------------------------- |
 | Source0           | 4-bits, R00-R15.             |
@@ -619,19 +622,15 @@ For dual data path, each data path has a different range.
 | Source1           | 4-bits, R00-R15.             |
 | Destination1      | 3-bits, R08-R15. Base 8.     |
 
-#### Double length register range:
-Double length moves with a single data path can read/write any register except
-for XGPRAM/YGPRAM. There are also some alternate encodings that allow for
-XRAM/YRAM address literals. Below are the possible ranges:
-
-
+#### Double Length Register Range:
+##### Single Data Path:
 |   Operand Type    |            Range                    |
 | ----------------- | ----------------------------------- |
 | Source            | 10-bits, R00-DMA\_CFG\_ACTIVE\_REG. |
 | Destination       | 10-bits, R00-DMA\_CFG\_ACTIVE\_REG. |
 
 
-Dual data path:
+##### Dual Data Path:
 |   Operand Type    |            Range             |
 | ----------------- | ---------------------------- |
 | Source0           | 4-bits, R00-R15.             |
@@ -640,7 +639,7 @@ Dual data path:
 | Destination1      | 4-bits, R00-R15.             |
 
 
-Literal Address:
+##### Literal Address:
 Literal operands take the form of `@#0x0000_X` or `@#0x0000_Y` for X and Y RAM, respectively.
 |   Operand Type     |            Range                   |
 | -----------------  | ---------------------------------- |
@@ -648,7 +647,7 @@ Literal operands take the form of `@#0x0000_X` or `@#0x0000_Y` for X and Y RAM, 
 | Source/Dest Literal| 16-bits, 0x0000-0xffff XRAM/YRAM. |
 
 
-Literal Value:
+##### Literal Value:
 Length two literal value moves are limited to 16-bit values, and must be the same
 literal value for both destination registers. Literal value operands take the form of
 `#0xffff`.
@@ -660,11 +659,8 @@ literal value for both destination registers. Literal value operands take the fo
 | Source1 Literal    | 16-bits, #0x0000-#0xffff. |
 
 
-#### Quad length register range:
-Quad length moves always use both data paths, and have the full 11-bit register range. Quad length moves
-are the only way to read/write XGPRAM/YGPRAM.
-
-Dual data path (default):
+#### Quad Length Register Range:
+##### Dual Data Path (default):
 |   Operand Type    |            Range              |
 | ----------------- | ----------------------------- |
 | Source0           | 11-bits, R00-YGPRAM\_015.     |
@@ -672,7 +668,7 @@ Dual data path (default):
 | Source1           | 11-bits, R00-YGPRAM\_015.     |
 | Destination1      | 11-bits, R00-YGPRAM\_015.     |
 
-Literal Value:
+##### Literal Value:
 Length four literal value moves are 32-bits each, and can be different for each
 data path.
 |   Operand Type     |            Range                   |
@@ -682,16 +678,71 @@ data path.
 | Destination1       | 11-bits, R00-YGPRAM\_015.          | 
 | Source1 Literal    | 32-bits, #0x00000000-#0xffffffff   |
 
+
+### MOVX A\_REG, OFFSET Register Ranges:
+
+#### Single Length Register Range:
+##### Single Data Path (literal offset):
+|   Operand Type     |            Range                                |
+| ------------------ | ----------------------------------------------- |
+| Source/Dest Reg    | 5-bits, R00-A\_R7\_MDFR.                        |
+| Source/Dest A\_Reg | A\_R0-A\_R7, literal 7-int offset, -0x40/+0x3f. |
+
+
+##### Single Data Path (address modifier offset):
+|   Operand Type     |            Range                             |
+| ------------------ | -------------------------------------------- |
+| Source/Dest Reg    | 5-bits, R00-A\_R7\_MDFR.                     |
+| Source/Dest A\_Reg | A\_R0-A\_R7, A\_R0\_MDFR-A\_R7\_MDFR offset. |
+
+
+#### Double Length Register Range:
+##### Single Data Path (literal offset):
+|   Operand Type     |            Range                                     |
+| ------------------ | ---------------------------------------------------- |
+| Source/Dest Reg    | 5-bits, R00-A\_R7\_MDFR.                             |
+| Source/Dest A\_Reg | A\_R0-A\_R7, literal 17-int offset, -0x8000/+0x7fff. |
+
+
+##### Single Data Path (address modifier offset):
+|   Operand Type     |            Range                             |
+| ------------------ | -------------------------------------------- |
+| Source/Dest Reg    | 5-bits, R00-A\_R7\_MDFR.                     |
+| Source/Dest A\_Reg | A\_R0-A\_R7, A\_R0\_MDFR-A\_R7\_MDFR offset. |
+
+##### Dual Data Path (literal offset):
+|   Operand Type        |            Range                                   |
+| --------------------- | -------------------------------------------------- |
+| Source/Dest Reg0      | 5-bits, R00-A\_R7\_MDFR.                           |
+| Source\Dest A\_Reg\_X | A\_R0-A\_R7, literal 11-int offset, -0x400/+0x3ff. |
+| Source/Dest Reg1      | 5-bits, R00-A\_R7\_MDFR.                           |
+| Source\Dest A\_Reg\_Y | A\_R0-A\_R7, literal 11-int offset, -0x400/+0x3ff. |
+
+
+##### Dual Data Path (address modifier offset):
+|   Operand Type        |            Range                             |
+| --------------------- | -------------------------------------------- |
+| Source/Dest Reg0      | 5-bits, R00-A\_R7\_MDFR.                     |
+| Source/Dest A\_Reg\_X | A\_R0-A\_R7, A\_R0\_MDFR-A\_R7\_MDFR offset. |
+| Source/Dest Reg1      | 5-bits, R00-A\_R7\_MDFR.                     |
+| Source/Dest A\_Reg\_Y | A\_R0-A\_R7, A\_R0\_MDFR-A\_R7\_MDFR offset. |
+
+
+#### Quad Length Register Range:
+Unknown.
+
+
 ### R = X Y Register Ranges:
 
-#### Single length register range:
+#### Single Length Register range:
+##### Single Data Path:
 |  Operand Type  |            Range             |
 | -------------- | ---------------------------- |
 | R              | 5-bits, R00-A\_R7\_MDFR.     |
 | X              | 5-bits, R00-A\_R7\_MDFR.     |
 | Y              | 5-bits, R00-A\_R7\_MDFR.     |
 
-Dual Data Path:
+##### Dual Data Path:
 |  Operand Type     |            Range             |
 | ----------------- | ---------------------------- |
 | R0                | R04-R07, R12-R15.            |
@@ -702,20 +753,20 @@ Dual Data Path:
 | Y1                | R07-R11.                     |
 
 
-Literal Value:
+##### Literal Value:
 |  Operand Type  |        Range.                    |
 | -------------- | -------------------------------- |
 | R              | 4-bits, R00-R15.                 |
 | X              | 4-bits, R00-R15.                 |
 | Y              | 8-bit literal int, -0x80-0x7f.   |
 
-#### Double length register range:
+#### Double Length Register Range:
+##### Single Data Path:
 |  Operand Type  |            Range             |
 | -------------- | ---------------------------- |
 | R              | 7-bits, R00-@A\_R7\_INC\_REG.|
 | X              | 7-bits, R00-@A\_R7\_INC\_REG.|
 | Y              | 7-bits, R00-@A\_R7\_INC\_REG.|
-
 
 
 Dual data path:
@@ -729,7 +780,7 @@ Dual data path:
 | Y1             |  R04-R05, R08-R11, R12-R13.  |
 
 
-Literal Address:
+##### Literal Address:
 Literal operands take the form of `@#0x0000_X` or `@#0x0000_Y` for X and Y RAM, respectively.
 |   Operand Type     |            Range                   |
 | -----------------  | ---------------------------------- |
@@ -738,7 +789,7 @@ Literal operands take the form of `@#0x0000_X` or `@#0x0000_Y` for X and Y RAM, 
 | Y                  | 4-bits, R00-R15.                   |
 
 
-Literal Value:
+##### Literal Value:
 |   Operand Type     |            Range                    |
 | -----------------  | ----------------------------------- |
 | R                  | 11-bits, R00-YGPRAM\_015.           | 
@@ -746,8 +797,8 @@ Literal Value:
 | Y                  | 16-bit literal int, -0x8000-0x7fff. |
 
 
-#### Quad length register range:
-Single data path:
+#### Quad Length Register Range:
+##### Single Data Path:
 |   Operand Type    |            Range              |
 | ----------------- | ----------------------------- |
 | R                 | 11-bits, R00-YGPRAM\_015.     |
@@ -755,7 +806,7 @@ Single data path:
 | Y                 | 11-bits, R00-YGPRAM\_015.     |
 
 
-Dual Data Path (without parallel op):
+##### Dual Data Path (without parallel op):
 |   Operand Type    |            Range              |
 | ----------------- | ----------------------------- |
 | R0                | 11-bits, R00-YGPRAM\_015.     |
@@ -765,27 +816,104 @@ Dual Data Path (without parallel op):
 | X1                | 11-bits, R00-YGPRAM\_015.     |
 | Y1                | 11-bits, R00-YGPRAM\_015.     |
 
-Dual Data Path (with parallel op):
+##### Dual Data Path (with parallel op):
+In this case, the second data path's register values must be in the range of
+a signed 10-bit int, or -0x200/+0x1ff.
+|   Operand Type    |            Range                |
+| ----------------- | ------------------------------- |
+| R0                | 11-bits, R00-YGPRAM\_015.       |
+| X0                | 11-bits, R00-YGPRAM\_015.       |
+| Y0                | 11-bits, R00-YGPRAM\_015.       |
+| R1                | Operand R0 + 10-bit int offset. |
+| X1                | Operand X0 + 10-bit int offset. |
+| Y1                | Operand Y0 + 10-bit int offset. |
 
-In this case, the second data path's register values must be in the same 4-bit range
-of the first data path's value. So, R15 cannot get A\R0, it can only get the other R00-R14 range.
+##### Literal Value:
+##### Single Data Path:
+|   Operand Type     |            Range                   |
+| ------------------ | ---------------------------------- |
+| R0                 | 11-bits, R00-YGPRAM\_015.          |
+| X0                 | 11-bits, R00-YGPRAM\_015.          |
+| Y0                 | 32-bit int, -0x80000000-0x7fffffff |
+
+
+##### Dual Data Path:
+|   Operand Type     |            Range                   |
+| ------------------ | ---------------------------------- |
+| R0                 | 11-bits, R00-YGPRAM\_015.          |
+| X0                 | 11-bits, R00-YGPRAM\_015.          |
+| Y0                 | 32-bit int, -0x80000000-0x7fffffff |
+| R1                 | Operand R0 + 10-bit int offset.    |
+| X1                 | Operand X0 + 10-bit int offset.    |
+| Y1                 | 32-bit int, -0x80000000-0x7fffffff |
+
+
+### R = X Y A Register Ranges:
+
+#### Single Length Register Range:
+|  Operand Type  |            Range                    |
+| -------------- | ----------------------------------- |
+| R              | R00-R01, R04-R05, R08-R09, R12-R13. |
+| X              | 4-bits, R00-R15.                    |
+| Y              | 4-bits, R00-R15.                    |
+| A              | 4-bits, R00-R15.                    |
+
+
+#### Double Length Register Range:
+##### Single Data Path:
+|  Operand Type  |            Range             |
+| -------------- | ---------------------------- |
+| R              | 4-bits, R00-R15.             |
+| X              | 4-bits, R00-R15.             |
+| Y              | 4-bits, R00-R15.             |
+| A              | 4-bits, R00-R15.             |
+
+
+##### Dual Data Path:
+|  Operand Type  |            Range             |
+| -------------- | ---------------------------- |
+| R0             |  R04-R07.                    |
+| X0             |  R00-R05, R08-R09.           |
+| Y0             |  R00-R07.                    |
+| A0             |  R04-R07, R12-R15.           |
+| R1             |  R12-R15.                    |
+| X1             |  R00-R01, R08-R13.           |
+| Y1             |  R08-R15.                    |
+| A1             |  R04-R07, R12-R15.           |
+
+
+#### Quad Length Register Range:
+##### Single Data Path:
+|   Operand Type    |            Range              |
+| ----------------- | ----------------------------- |
+| R                 | 11-bits, R00-YGPRAM\_015.     |
+| X                 | 11-bits, R00-YGPRAM\_015.     |
+| Y                 | 11-bits, R00-YGPRAM\_015.     |
+| A                 | 11-bits, R00-YGPRAM\_015.     |
+
+
+##### Dual Data Path (without parallel op):
 |   Operand Type    |            Range              |
 | ----------------- | ----------------------------- |
 | R0                | 11-bits, R00-YGPRAM\_015.     |
 | X0                | 11-bits, R00-YGPRAM\_015.     |
 | Y0                | 11-bits, R00-YGPRAM\_015.     |
+| A0                | 11-bits, R00-YGPRAM\_015.     |
+| R1                | 11-bits, R00-YGPRAM\_015.     |
+| X1                | 11-bits, R00-YGPRAM\_015.     |
+| Y1                | 11-bits, R00-YGPRAM\_015.     |
+| A1                | 11-bits, R00-YGPRAM\_015.     |
+
+##### Dual Data Path (with parallel op):
+In this case, the second data path's register values must be in the same 4-bit range
+of the first data path's value. So, R15 cannot get A\_R0, it can only get the other R00-R14 range.
+|   Operand Type    |            Range              |
+| ----------------- | ----------------------------- |
+| R0                | 11-bits, R00-YGPRAM\_015.     |
+| X0                | 11-bits, R00-YGPRAM\_015.     |
+| Y0                | 11-bits, R00-YGPRAM\_015.     |
+| A0                | 11-bits, R00-YGPRAM\_015.     |
 | R1                | Operand R0 + 4-bit offset.    |
 | X1                | Operand X0 + 4-bit offset.    |
 | Y1                | Operand Y0 + 4-bit offset.    |
-
-
-
-Literal Value:
-Length four literal value moves are 32-bits each, and can be different for each
-data path.
-|   Operand Type     |            Range                   |
-| -----------------  | ---------------------------------- |
-| Destination0       | 11-bits, R00-YGPRAM\_015.          | 
-| Source0 Literal    | 32-bits, #0x00000000-#0xffffffff   |
-| Destination1       | 11-bits, R00-YGPRAM\_015.          | 
-| Source1 Literal    | 32-bits, #0x00000000-#0xffffffff   |
+| A1                | Operand Y0 + 4-bit offset.    |
