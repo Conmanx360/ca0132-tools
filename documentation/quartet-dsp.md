@@ -24,7 +24,18 @@ all audio streams are routed through it and it's DMA controllers.
   - [Opcodes](#opcodes)
   - [Assembly Syntax](#assembly-syntax)
   - [Main Instructions](#main-instructions)
+    - [MOV](#mov-based-instructions)
+    - [MOVX](#movx-based-instructions)
+    - [CALL/JMP](#calljmpsjmpscall-instructions)
+    - [RET/RETI](#retreti-instructions)
+    - [INT/HALT](#interrupt-instructions)
+    - [FMA/FMS/NFMA](#fmafmsnfma-instructions)
+    - [ADD/SUB/MUL/NMUL/FMACC](#addsubmulnmulfmacc-instructions)
+    - [RR/RL/ARITH\_RR/ARITH\_RL](#rrrlarithrrarithrl-instructions)
+    - [POP/PUSH](#poppush-instructions)
   - [Parallel Instructions](#parallel-instructions)
+    - [MOV\_P/MOV\_T1\_P](#movpmovt1p-instructions)
+    - [EXEC\_COND\_P](#execcondp-instructions)
   - [Register Ranges](#register-ranges)
     - [MOV SRC, DST](#mov-src-dst-register-ranges)
     - [MOVX A\_REG, OFFSET](#movx-a_reg-offset-register-ranges)
@@ -598,8 +609,31 @@ MOV literals consistent of:
 - MOV\_L, which moves only to the lower 16-bits. This should be used in 16-bit value sets. Has \_T1 and \_T2 variants.
 - MOV\_U, which moves only to the upper 16-bits. This should be used in 16-bit value sets. Only has \_T1 variant, as \_T2 is only 8-bits.
 
+### MOVX Based Instructions:
+
+### CALL/JMP/S\_JMP/S\_CALL Instructions:
+
+### RET/RETI Instructions:
+
+### Interrupt Instructions:
+
+### FMA/FMS/NFMA Instructions:
+
+### ADD/SUB/MUL/NMUL/FMACC Instructions:
+
+### AND/OR/XOR/CMPL/TWOS\_CMPL/HIGHEST\_BIT Instructions:
+
+### INT\_TO\_FLOAT/FLOAT\_TO\_INT Instructions:
+
+### RR/RL/ARITH\_RR/ARITH\_RL Instructions:
+
+### POP/PUSH Instructions:
 
 ## Parallel Instructions:
+
+### MOV\_P/MOV\_T1\_P Instructions:
+
+### EXEC\_COND\_P Instructions:
 
 ## Register Ranges:
 Register ranges for each instruction type and length.
