@@ -26,12 +26,13 @@ all audio streams are routed through it and it's DMA controllers.
   - [Main Instructions](#main-instructions)
     - [MOV](#mov-based-instructions)
     - [MOVX](#movx-based-instructions)
-    - [CALL/JMP](#calljmpsjmpscall-instructions)
+    - [CALL/JMP](#calljmps_jmps_call-instructions)
     - [RET/RETI](#retreti-instructions)
     - [INT/HALT](#interrupt-instructions)
     - [FMA/FMS/NFMA](#fmafmsnfma-instructions)
+    - [AND/OR/XOR/CMPL](#andorxorcmpltwos_cmplhighest_bit-instructions)
     - [ADD/SUB/MUL/NMUL/FMACC](#addsubmulnmulfmacc-instructions)
-    - [RR/RL/ARITH\_RR/ARITH\_RL](#rrrlarithrrarithrl-instructions)
+    - [RR/RL/ARITH\_RR/ARITH\_RL](#rrrlarith_rrarith_rl-instructions)
     - [POP/PUSH](#poppush-instructions)
   - [Parallel Instructions](#parallel-instructions)
     - [MOV\_P/MOV\_T1\_P](#movpmovt1p-instructions)
@@ -583,7 +584,7 @@ According to Creative, there are 235 main instructions. I will detail the ones I
 MOV based instructions all have two operands, a source and a destination.
 
 
-### MOV/MOV\_T1/MOV\_T2:
+#### MOV/MOV\_T1/MOV\_T2:
 The main MOV instructions come in three types.
 
 
@@ -591,7 +592,7 @@ The main MOV instructions come in three types.
 - MOV\_T1 Moves the upper 32-bits of R04/R05/R12/R13 (accumulators.)
 - MOV\_T2 moves the upper 8 bits of R04/R05/R12/R13.
 
-### MOV with source modifiers:
+#### MOV with source modifiers:
 The main MOV instruction can also be used with source modifiers, which are:
 
 - Increment, example: `MOV R00, R01++;`.
@@ -602,7 +603,7 @@ The main MOV instruction can also be used with source modifiers, which are:
 These can only be used with regular MOV instructions, so MOV\_T1 and MOV\_T2 are incompatible.
 Length two literals are compatible.
 
-### MOV Literals:
+#### MOV Literals:
 MOV literals consistent of:
 
 - MOV, which is a normal literal MOV. Also has MOV\_T1 and MOV\_T2 variants.
@@ -610,6 +611,29 @@ MOV literals consistent of:
 - MOV\_U, which moves only to the upper 16-bits. This should be used in 16-bit value sets. Only has \_T1 variant, as \_T2 is only 8-bits.
 
 ### MOVX Based Instructions:
+
+MOVX has \_T1 and regular MOV variants, but no \_T2 variant. No MOVX
+instruction supports parallel instructions.
+
+#### MOVX With Literal Integer Offset:
+MOVX with literal integer offsets take an address register argument with a
+literal integer offset. They can be source/destination swapped. In the case of
+dual data path instructions, the first address register must be XRAM, and the
+second must be YRAM. In single data path instructions, either can be used.
+
+- Address register destination example: `MOVX @A_R0_X - 17, R02;`.
+- Address register source example: `MOVX R03, @A_R6_Y + 18;`.
+- Dual example `MOVX @A_R2_X + 5, R00 : @A_R2_Y + 2, R01;`.
+
+
+#### MOVX With Address Modifier Offset:
+Same behavior as above, except instead of taking a literal integer offset, it
+takes an address modifier register.
+
+- Address register destination example: `MOVX @A_R0_X + A_MD2, R02;`.
+- Address register source example: `MOVX R03, @A_R6_Y + A_MD0;`.
+- Dual example `MOVX @A_R2_X + A_MD3, R00 : @A_R2_Y + A_MD4, R01;`.
+
 
 ### CALL/JMP/S\_JMP/S\_CALL Instructions:
 
