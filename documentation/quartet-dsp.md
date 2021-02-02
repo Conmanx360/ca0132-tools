@@ -636,10 +636,53 @@ takes an address modifier register.
 
 
 ### CALL/JMP/S\_JMP/S\_CALL Instructions:
+JMPC/JMPC\_T1 are not fully understood.
+
+
+#### JMP/JMPC/JMPC\_T1/CALL:
+These instructions take an address literal, or an address register to set the
+PC. They all have an 8-bit conditional that is not yet fully understood.
+Literal `#0x0f` seems to be always true.
+
+- Call literal address example: `CALL #0x0f, #0xdf00;`.
+- Call address register example: `CALL #0x0f, A_R0;`.
+- Jump literal address example: `JMP #0x0f, #0x0e20;`.
+- Jump address register example: `JMP #0x0f, A_R0;`.
+
+
+#### S\_JMP/S\_JMPC/S\_JMPC\_T1/S\_CALL:
+These instructions take a signed integer offset from the current PC. They also
+take the same 8-bit conditional as the regular instructions.
+
+- Call literal address example: `CALL #0x0f, #0xdf00;`.
+- Jump literal address example: `JMP #0x0f, #0x0e20;`.
+
 
 ### RET/RETI Instructions:
 
+
+#### RET.
+Regular return, `RET;`. Decrements the PC\_STK\_PTR lower 16-bits.
+
+
+#### RETI.
+Interrupt return, `RETI;`. Decrements the PC\_STK\_PTR lower 16-bits, and the
+STA\_S\_STK\_PTR, which stores the COND\_CODE register, and restores it's
+value.
+
+
 ### Interrupt Instructions:
+
+#### INT\_ENABLE/INT\_DISABLE:
+These instructions enable/disable processor interrupts, `INT\_ENABLE;`,
+`INT\_DISABLE;`.
+
+
+#### INT\_CLR:
+Clears the interrupt pin provided by the literal, `INT\_CLR #0x00;` through
+`INT\_CLR #0x0f;`.
+
+
 
 ### FMA/FMS/NFMA Instructions:
 
