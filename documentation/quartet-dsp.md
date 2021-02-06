@@ -827,6 +827,41 @@ point value in x multiplied by 2 to the power of y.
 
 
 ### RR/RL/ARITH\_RR/ARITH\_RL Instructions:
+These instructions perform bitshifts, and take the form `r = x >> y`, with either left or
+right bitshifts. Register ranges are [here.](#r--x-y-register-ranges)
+
+## RR/RL:
+Regular rotate instructions. Examples:
+
+- `RL R00, R02, #2;`, r00 = r02 << 2.
+- `RL R00, R02, R01;`, r00 = r02 << r01.
+- `RR R00, R02, #3;`, r00 = r02 >> 3.
+- `RR R00, R02, R06;`, r00 = r02 >> r06.
+
+
+## ARITH\_RR/ARITH\_RL:
+Arithmetic rotate instructions. These do sign extension of the MSB if it is set.
+This allows the preservation of the sign of a bitshifted signed int. Examples:
+
+- `ARITH_RL R00, R02, #2;`, r00 = r02 << 2.
+- `ARITH_RL R00, R02, R01;`, r00 = r02 << r01.
+- `ARITH_RR R00, R02, #3;`, r00 = r02 >> 3.
+- `ARITH_RR R00, R02, R06;`, r00 = r02 >> r06.
+
+
+An example of this behavior:
+```
+if r02 = 0x80000000,
+ARITH_RR R00, R02, #1;
+
+Will result in r00 = 0xc0000000, as the sign bit is extended.
+
+if r02 = 0x00000000,
+ARITH_RR R00, R02, #1;
+
+Will result in r00 = 0x00000000, as there is no sign bit to extend.
+```
+
 
 ### POP/PUSH Instructions:
 
