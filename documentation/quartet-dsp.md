@@ -31,7 +31,7 @@ all audio streams are routed through it and it's DMA controllers.
     - [INT/HALT](#interrupt-instructions)
     - [ADD/SUB/MUL/NMUL/FMAC](#addsubmulnmulfmac-instructions)
     - [FMA/FMS/NFMA](#fmafmsnfma-instructions)
-    - [AND/OR/XOR/CMPL](#andorxorcmpltwos_cmplhighest_bit-instructions)
+    - [AND/OR/XOR](#andorxor-instructions)
     - [RR/RL/ARITH\_RR/ARITH\_RL](#rrrlarith_rrarith_rl-instructions)
     - [POP/PUSH](#poppush-instructions)
   - [Parallel Instructions](#parallel-instructions)
@@ -753,7 +753,27 @@ Has a `_T1` variant, unknown difference.
 - `F_NFMA R04, R12, R02, R03;`, r04 = -(r12 * r02) + r03, but floating point.
 
 
-### AND/OR/XOR/CMPL/TWOS\_CMPL/HIGHEST\_BIT Instructions:
+### AND/OR/XOR Instructions:
+All of these instructions  have the format of `r = (x & y)` with different operator variations
+between the two operands. Register ranges are [here.](#r--x-y-register-ranges)
+
+#### AND:
+Basic bitwise AND instruction.
+
+- `AND R00, R02, R03;`, r00 = r02 & r03.
+
+
+#### OR:
+Basic bitwise OR instruction.
+
+- `OR R00, R02, R03;`, r00 = r02 | r03.
+
+
+#### XOR:
+Basic bitwise XOR instruction.
+
+- `XOR R00, R02, R03;`, r00 = r02 ^ r03.
+
 
 ### INT\_TO\_FLOAT/FLOAT\_TO\_INT Instructions:
 
