@@ -683,8 +683,37 @@ Clears the interrupt pin provided by the literal, `INT\_CLR #0x00;` through
 `INT\_CLR #0x0f;`.
 
 
-
 ### FMA/FMS/NFMA Instructions:
+FMA instructions all have the format of `r = (x * y) + a`, with different operator variations
+between the operands. Register ranges are [here.](#r--x-y-a-register-ranges)
+
+#### FMA:
+Basic fused multiply add, `r = (x * y) + a`. `I_FMA` for integer, and `F_FMA` for
+floating point. There is currently one known opcode that does FMA a little bit differently,
+and I've marked this `_T2`. Example instruction:
+
+
+- `I_FMA R04, R12, R02, R03;`, r04 = (r12 * r02) + r03.
+- `F_FMA R04, R12, R02, R03;`, r04 = (r12 * r02) + r03, but floating point.
+
+
+#### FMS:
+Same basic format of FMA, except this time it's fused multiply and subtract, `r = (x * y) - a`.
+Has a `_T1` variant, unknown difference.
+
+
+- `I_FMS R04, R12, R02, R03;`, r04 = (r12 * r02) - r03.
+- `F_FMS R04, R12, R02, R03;`, r04 = (r12 * r02) - r03, but floating point.
+
+
+#### NFMA:
+Basic FMA, except the product of the multiplication is negated, `r = -(x * y) + a`.
+Has a `_T1` variant, unknown difference.
+
+
+- `I_NFMA R04, R12, R02, R03;`, r04 = -(r12 * r02) + r03.
+- `F_NFMA R04, R12, R02, R03;`, r04 = -(r12 * r02) + r03, but floating point.
+
 
 ### ADD/SUB/MUL/NMUL/FMACC Instructions:
 
