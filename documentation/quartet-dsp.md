@@ -674,13 +674,13 @@ value.
 ### Interrupt Instructions:
 
 #### INT\_ENABLE/INT\_DISABLE:
-These instructions enable/disable processor interrupts, `INT\_ENABLE;`,
-`INT\_DISABLE;`.
+These instructions enable/disable processor interrupts, `INT_ENABLE;`,
+`INT_DISABLE;`.
 
 
 #### INT\_CLR:
-Clears the interrupt pin provided by the literal, `INT\_CLR #0x00;` through
-`INT\_CLR #0x0f;`.
+Clears the interrupt pin provided by the literal, `INT_CLR #0x00;` through
+`INT_CLR #0x0f;`.
 
 
 ### ADD/SUB/MUL/NMUL/FMAC Instructions:
