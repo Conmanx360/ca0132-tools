@@ -33,6 +33,7 @@ all audio streams are routed through it and it's DMA controllers.
     - [FMA/FMS/NFMA](#fmafmsnfma-instructions)
     - [AND/OR/XOR](#andorxor-instructions)
     - [INV/ABS/CMPL](#invabscmpl-instructions)
+    - [I\_TO\_F/F\_TO\_I](#i_to_ff_to_i-instructions)
     - [RR/RL/ARITH\_RR/ARITH\_RL](#rrrlarith_rrarith_rl-instructions)
     - [POP/PUSH](#poppush-instructions)
   - [Parallel Instructions](#parallel-instructions)
@@ -793,6 +794,7 @@ Basic absolute value instruction. Has float and integer version.
 - `I_ABS R00, R01;`, r00 = abs(r01).
 - `F_ABS R00, R01;`, r00 = abs(r01).
 
+
 #### CMPL:
 Bitwise complement. Only one version, because this wouldn't make sense to have integer/float
 versions.
@@ -800,7 +802,29 @@ versions.
 - `CMPL R00, R01;`, r00 = ~r01.
 
 
-### INT\_TO\_FLOAT/FLOAT\_TO\_INT Instructions:
+### I\_TO\_F/F\_TO\_I Instructions:
+These instructions convert values between integer and floating point representations.
+The formatting is a little bit odd though, as it uses `r = x y` representation. Register ranges
+are [here.](#r--x-y-register-ranges)
+
+#### I\_TO\_F:
+Takes two integer operands in x and y, and creates a floating point value in r. Example:
+
+`I_TO_F R00, R01, R02;`, r00 = (float)(r01 * (pow(2, r02))).
+
+
+If the x value is zero, the floating point exponent is still set.
+
+
+#### F\_TO\_I:
+Takes a float value in x, an integer value in y, and creates an integer value in r. Example:
+
+`F_TO_I R00, R01, R02;`, r00 = (int)(r01 * (pow(2, r02))).
+
+
+So, if the y value is 0, you get a straight float to int conversion. Otherwise, you get the floating
+point value in x multiplied by 2 to the power of y.
+
 
 ### RR/RL/ARITH\_RR/ARITH\_RL Instructions:
 
