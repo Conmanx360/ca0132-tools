@@ -32,6 +32,7 @@ all audio streams are routed through it and it's DMA controllers.
     - [ADD/SUB/MUL/NMUL/FMAC](#addsubmulnmulfmac-instructions)
     - [FMA/FMS/NFMA](#fmafmsnfma-instructions)
     - [AND/OR/XOR](#andorxor-instructions)
+    - [INV/ABS/CMPL](#invabscmpl-instructions)
     - [RR/RL/ARITH\_RR/ARITH\_RL](#rrrlarith_rrarith_rl-instructions)
     - [POP/PUSH](#poppush-instructions)
   - [Parallel Instructions](#parallel-instructions)
@@ -773,6 +774,30 @@ Basic bitwise OR instruction.
 Basic bitwise XOR instruction.
 
 - `XOR R00, R02, R03;`, r00 = r02 ^ r03.
+
+
+### INV/ABS/CMPL Instructions:
+All of these instructions share the MOV layout, so `dst = src`, with different modifiers
+applied to the source operand. Register ranges are [here.](#mov-src-dst-register-ranges)
+
+#### INV:
+Basic sign inversion instruction. Has float and integer version.
+
+- `I_INV R00, R01;`, r00 = -r01.
+- `F_INV R00, R01;`, r00 = -r01.
+
+
+#### ABS:
+Basic absolute value instruction. Has float and integer version.
+
+- `I_ABS R00, R01;`, r00 = abs(r01).
+- `F_ABS R00, R01;`, r00 = abs(r01).
+
+#### CMPL:
+Bitwise complement. Only one version, because this wouldn't make sense to have integer/float
+versions.
+
+- `CMPL R00, R01;`, r00 = ~r01.
 
 
 ### INT\_TO\_FLOAT/FLOAT\_TO\_INT Instructions:
