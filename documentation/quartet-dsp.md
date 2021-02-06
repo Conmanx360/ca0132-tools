@@ -29,9 +29,9 @@ all audio streams are routed through it and it's DMA controllers.
     - [CALL/JMP](#calljmps_jmps_call-instructions)
     - [RET/RETI](#retreti-instructions)
     - [INT/HALT](#interrupt-instructions)
+    - [ADD/SUB/MUL/NMUL/FMAC](#addsubmulnmulfmac-instructions)
     - [FMA/FMS/NFMA](#fmafmsnfma-instructions)
     - [AND/OR/XOR/CMPL](#andorxorcmpltwos_cmplhighest_bit-instructions)
-    - [ADD/SUB/MUL/NMUL/FMACC](#addsubmulnmulfmacc-instructions)
     - [RR/RL/ARITH\_RR/ARITH\_RL](#rrrlarith_rrarith_rl-instructions)
     - [POP/PUSH](#poppush-instructions)
   - [Parallel Instructions](#parallel-instructions)
@@ -683,6 +683,44 @@ Clears the interrupt pin provided by the literal, `INT\_CLR #0x00;` through
 `INT\_CLR #0x0f;`.
 
 
+### ADD/SUB/MUL/NMUL/FMAC Instructions:
+All of these instructions  have the format of `r = (x + y)` with different operator variations
+between the two operands. Register ranges are [here.](#r--x-y-register-ranges)
+
+
+#### ADD:
+Basic addition, has format of `r = x + y`. Has `_T1` variant with unknown difference.
+
+- `I_ADD R00, R02, R01;`, r00 = r02 + r01.
+- `F_ADD R00, R02, R01;`, r00 = r02 + r01, but floating point.
+
+
+#### SUB:
+Basic subtraction, has format of `r = x - y`. Has `_T1` variant with unknown difference.
+
+- `I_SUB R00, R02, R01;`, r00 = r02 - r01.
+- `F_SUB R00, R02, R01;`, r00 = r02 - r01, but floating point.
+
+
+#### MUL:
+Basic multiplication, has format of `r = x * y`. Has `_T1` and `_T2` variants, with unknown differences.
+
+- `I_MUL R00, R02, R01;`, r00 = r02 * r01.
+- `F_MUL R00, R02, R01;`, r00 = r02 * r01, but floating point.
+
+#### NMUL:
+Basic multiplication, except product is negated. Has format of `r = -(x * y)`.
+
+- `I_NMUL R00, R02, R01;`, r00 = -(r02 * r01).
+- `F_NMUL R00, R02, R01;`, r00 = -(r02 * r01), but floating point.
+
+#### FMAC:
+Fused multiply and add to the accumulator, except in this case it's the destination register, so
+`r += x * y`. Currently only a floating point variant is known.
+
+- `F_FMAC R04, R02, R01;`, r04 += r02 * r01.
+
+
 ### FMA/FMS/NFMA Instructions:
 FMA instructions all have the format of `r = (x * y) + a`, with different operator variations
 between the operands. Register ranges are [here.](#r--x-y-a-register-ranges)
@@ -714,8 +752,6 @@ Has a `_T1` variant, unknown difference.
 - `I_NFMA R04, R12, R02, R03;`, r04 = -(r12 * r02) + r03.
 - `F_NFMA R04, R12, R02, R03;`, r04 = -(r12 * r02) + r03, but floating point.
 
-
-### ADD/SUB/MUL/NMUL/FMACC Instructions:
 
 ### AND/OR/XOR/CMPL/TWOS\_CMPL/HIGHEST\_BIT Instructions:
 
