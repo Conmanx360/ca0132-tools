@@ -35,6 +35,7 @@ all audio streams are routed through it and it's DMA controllers.
     - [INV/ABS/CMPL](#invabscmpl-instructions)
     - [I\_TO\_F/F\_TO\_I](#i_to_ff_to_i-instructions)
     - [RR/RL/ARITH\_RR/ARITH\_RL](#rrrlarith_rrarith_rl-instructions)
+    - [SET\_BIT/CLR\_BIT/TGL\_BIT](#set_bitclr_bittgl_bit-instructions)
     - [POP/PUSH](#poppush-instructions)
   - [Parallel Instructions](#parallel-instructions)
     - [MOV\_P/MOV\_T1\_P](#movpmovt1p-instructions)
@@ -861,6 +862,44 @@ ARITH_RR R00, R02, #1;
 
 Will result in r00 = 0x00000000, as there is no sign bit to extend.
 ```
+
+### SET\_BIT/CLR\_BIT/TGL\_BIT Instructions:
+These instructions set, clear, and toggle bits in a register. They take the form of `r = x | (1 << y)`.
+There are also two special instructions for setting/clearing the SEMAPHORE\_G\_REG bits. Register ranges
+are [here.](#r--x-y-register-ranges)
+
+
+#### SET\_BIT:
+This one takes the form of `r = x | (1 << y)`. If the bit is unset, it's set. Otherwise,
+it's left alone. Examples:
+
+- `SET_BIT R00, R01, R02;`, r00 = r01 | (1 << r02);
+- `SET_BIT R00, R01, #2;`, r00 = r01 | (1 << 2);
+
+
+#### CLR\_BIT:
+This one takes the form of `r = x & ~(1 << y)`. If the bit is set, it's cleared. Otherwise,
+it's left alone. Examples:
+
+- `CLR_BIT R00, R01, R02;`, r00 = r01 & ~(1 << r02);
+- `CLR_BIT R00, R01, #1;`, r00 = r01 & ~(1 << 1);
+
+
+#### TGL\_BIT:
+This one takes the form of `r = x ^ (1 << y)`. If the bit is 1, it's cleared, if it's 0, it's set.
+Examples:
+
+- `TGL_BIT R00, R01, R02;`, r00 = r01 & ~(1 << r02);
+- `TGL_BIT R00, R01, #3;`, r00 = r01 & ~(1 << 3);
+
+
+#### SET\_SEM\_G\_BIT/CLR\_SEM\_G\_BIT:
+Does the same as the regular SET\_BIT instruction, except r in `r = x | (1 << y)` is
+always the SEMAPHORE\_G\_REG, and the supplied r register operand is always cleared. Only
+takes literal values for the Y operand. Examples:
+
+- `SET_SEM_G_BIT R04, R01, #5;`, SEMAPHORE\_G\_REG = r01 | (1 << 5), r04 = 0.
+- `CLR_SEM_G_BIT R04, R01, #5;`, SEMAPHORE\_G\_REG = r01 & ~(1 << 5), r04 = 0.
 
 
 ### POP/PUSH Instructions:
