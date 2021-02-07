@@ -36,6 +36,7 @@ all audio streams are routed through it and it's DMA controllers.
     - [I\_TO\_F/F\_TO\_I](#i_to_ff_to_i-instructions)
     - [RR/RL/ARITH\_RR/ARITH\_RL](#rrrlarith_rrarith_rl-instructions)
     - [SET\_BIT/CLR\_BIT/TGL\_BIT](#set_bitclr_bittgl_bit-instructions)
+    - [GET\_BITS/SET\_BITS](#get_bitsset_bits-instructions)
     - [POP/PUSH](#poppush-instructions)
   - [Parallel Instructions](#parallel-instructions)
     - [MOV\_P/MOV\_T1\_P](#movpmovt1p-instructions)
@@ -900,6 +901,48 @@ takes literal values for the Y operand. Examples:
 
 - `SET_SEM_G_BIT R04, R01, #5;`, SEMAPHORE\_G\_REG = r01 | (1 << 5), r04 = 0.
 - `CLR_SEM_G_BIT R04, R01, #5;`, SEMAPHORE\_G\_REG = r01 & ~(1 << 5), r04 = 0.
+
+
+### GET\_BITS/SET\_BITS Instructions:
+These instructions allow for extracting/setting bits within a register. Both GET and SET
+require both data paths to function, as they take operands from both data paths. GET register
+ranges are [here,](#r--x-y-register-ranges), SET register ranges are [here.](#r--x-y-a-register-ranges)
+
+#### GET\_BITS:
+This one takes the form of `r0 = (x0 >> y0) & ((1 << x1) - 1)`. r0 is the destination register,
+x0 is the register to extract the bits from, y0 is the starting bit, and x1 is the bit count.
+If r1 is set to a non-constant register, it stores the value of y0 + x1, which is the highest
+bit of the extracted value. The y1 register seems to go unused.
+
+Example:
+
+- `GET_BITS R00, R01, R02 : R03, R06, CR_0x00000000;`, r00 = (r01 >> r02) & ((1 << r06) - 1). r03 = r02 + r06.
+
+
+#### SET\_BITS:
+This one takes the form of `r0 = ((a0 & ((1 << a1) - 1)) << x0) | y0`. This has three different variants.
+The default behavior is to clear the bits to be set before setting them. The \_T1 behavior doesn't clear
+the bits to set before setting them, making it essentially bitshift with OR. The \_T2 variant clears all
+bits above the highest bit of our set value. Operands x1 and y1 seem to go unused. Operand r1 behaves
+the same as GET\_BITS, where the starting bit and bit count are added together and stored into it.
+Examples of each variant:
+
+
+```
+r01 = 0x10;
+r02 = 0x01234567;
+r03 = 0x06;
+r06 = 0x08;
+
+SET_BITS R00, R01, R02, R03 : CR_0x00000000, CR_0x00000000, CR_0x00000000, R06;
+Results in r00 = 0x01064567;
+
+SET_BITS_T1 R00, R01, R02, R03 : CR_0x00000000, CR_0x00000000, CR_0x00000000, R06;
+Results in r00 = 0x01274567;
+
+SET_BITS_T2 R00, R01, R02, R03 : CR_0x00000000, CR_0x00000000, CR_0x00000000, R06;
+Results in r00 = 0x00064567;
+```
 
 
 ### POP/PUSH Instructions:
