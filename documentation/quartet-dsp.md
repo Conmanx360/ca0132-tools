@@ -35,6 +35,7 @@ all audio streams are routed through it and it's DMA controllers.
     - [INV/ABS/CMPL](#invabscmpl-instructions)
     - [I\_TO\_F/F\_TO\_I](#i_to_ff_to_i-instructions)
     - [RR/RL/ARITH\_RR/ARITH\_RL](#rrrlarith_rrarith_rl-instructions)
+    - [FFS/FFU/I\_ABS\_FFS](#ffsffui_abs_ffs-instructions)
     - [SET\_BIT/CLR\_BIT/TGL\_BIT](#set_bitclr_bittgl_bit-instructions)
     - [GET\_BITS/SET\_BITS](#get_bitsset_bits-instructions)
     - [POP/PUSH](#poppush-instructions)
@@ -863,6 +864,36 @@ ARITH_RR R00, R02, #1;
 
 Will result in r00 = 0x00000000, as there is no sign bit to extend.
 ```
+
+### FFS/FFU/I\_ABS\_FFS Instructions:
+These instructions find the first set/unset bit, starting from the MSB. These take a
+source and destination register, like a MOV instruction. Register ranges are [here.](#mov-src-dst-register-ranges)
+
+#### FFS:
+Find first set instruction. Finds the first bit set in the source register, counting from the MSB.
+Example:
+
+- `FFS R00, CR_0x00000001;`, would have r00 = 0x1f.
+
+
+#### FFU:
+Find first unset instruction. Finds the first bit unset in the source register, counting from the MSB.
+Example:
+
+- `FFU R00, CR_0xfffffffe;`, would have r00 = 0x1f.
+
+
+#### I\_ABS\_FFS:
+This instruction gets the absolute value of the signed int in the source register before finding
+the first set bit. Due to negative integers having a larger range, they count an extra bit.
+Example:
+
+- `I_ABS_FFS R00, CR_0x00000002;`, would have r00 = 0x1d, 29.
+- `I_ABS_FFS R00, CR_0xfffffffe;`, would have r00 = 0x1e, 30.
+
+
+As you can see, -2's first set bit is one larger than positive two, due to having different ranges.
+
 
 ### SET\_BIT/CLR\_BIT/TGL\_BIT Instructions:
 These instructions set, clear, and toggle bits in a register. They take the form of `r = x | (1 << y)`.
