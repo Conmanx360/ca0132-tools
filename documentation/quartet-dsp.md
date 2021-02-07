@@ -831,8 +831,8 @@ point value in x multiplied by 2 to the power of y.
 These instructions perform bitshifts, and take the form `r = x >> y`, with either left or
 right bitshifts. Register ranges are [here.](#r--x-y-register-ranges)
 
-## RR/RL:
-Regular rotate instructions. Examples:
+#### RR/RL:
+Regular rotate instructions. Has a `_T1` variant, unknown difference. Examples:
 
 - `RL R00, R02, #2;`, r00 = r02 << 2.
 - `RL R00, R02, R01;`, r00 = r02 << r01.
@@ -840,7 +840,7 @@ Regular rotate instructions. Examples:
 - `RR R00, R02, R06;`, r00 = r02 >> r06.
 
 
-## ARITH\_RR/ARITH\_RL:
+#### ARITH\_RR/ARITH\_RL:
 Arithmetic rotate instructions. These do sign extension of the MSB if it is set.
 This allows the preservation of the sign of a bitshifted signed int. Examples:
 
