@@ -2785,7 +2785,7 @@ static const dsp_op_info asm_ops[] = {
 	                 OP_LAYOUT_MOV_2,
 	                 OP_LAYOUT_MOV_4 },
 	},
-	{ .op_str = "UNK-0x09d",
+	{ .op_str = "F_RCP_SQRT",
 	  .op = 0x009d,
 	  .has_op_layout = 1,
 	  .layout_id = { OP_LAYOUT_MOV_1,
