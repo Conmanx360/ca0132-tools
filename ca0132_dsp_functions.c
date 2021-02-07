@@ -2523,7 +2523,7 @@ static const dsp_op_info asm_ops[] = {
 	                 OP_LAYOUT_MOV_4 },
 	  .src_mdfr = { OPERAND_MDFR_DEC },
 	},
-	{ .op_str = "UNK-0x078",
+	{ .op_str = "MOV",
 	  .op = 0x0078,
 	  .has_op_layout = 1,
 	  .layout_id = { OP_LAYOUT_MOV_1,
