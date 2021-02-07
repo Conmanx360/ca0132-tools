@@ -2659,7 +2659,7 @@ static const dsp_op_info asm_ops[] = {
 	                 OP_LAYOUT_R_X_Y_2,
 	                 OP_LAYOUT_R_X_Y_4 },
 	},
-	{ .op_str = "F_ADD_T1",
+	{ .op_str = "F_ADDSUB",
 	  .op = 0x008b,
 	  .has_op_layout = 1,
 	  .layout_id = { OP_LAYOUT_R_X_Y_1,
