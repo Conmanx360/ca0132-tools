@@ -310,10 +310,14 @@ static const char *reg_dump_exit_asm[] = {
          MOVX:2 R01, @A_R7_Y - 0x004;",
 	"MOVX:2 R08, @A_R7_X - 0x005 :\n\
          MOVX:2 R09, @A_R7_Y - 0x005;",
-	"MOVX:2 R10, @A_R7_X - 0x006 :\n\
-         MOVX:2 R11, @A_R7_Y - 0x006;",
+	/* Save COND_REG prior to restoring stack register. */
+	"MOV R10, COND_REG;",
 	/* Restore stack register value back to initial value. */
 	"ADD A_R7, A_R7, #-6;",
+	/* Restore COND_REG to what it was prior to the previous OP. */
+	"MOV COND_REG, R10;",
+	"MOVX:2 R10, @A_R7_X - 0x000 :\n\
+         MOVX:2 R11, @A_R7_Y - 0x000;",
 	"RET;",
 };
 
