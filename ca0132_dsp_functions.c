@@ -2771,7 +2771,7 @@ static const dsp_op_info asm_ops[] = {
 	                 OP_LAYOUT_MOV_2,
 	                 OP_LAYOUT_MOV_4 },
 	},
-	{ .op_str = "UNK-0x09b",
+	{ .op_str = "F_RCP_DIV",
 	  .op = 0x009b,
 	  .has_op_layout = 1,
 	  .layout_id = { OP_LAYOUT_R_X_Y_1,
