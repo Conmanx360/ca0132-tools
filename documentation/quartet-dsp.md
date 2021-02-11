@@ -616,8 +616,8 @@ These modifiers can only be used with regular MOV instructions, so MOV\_T1 and M
 MOV literals consistent of:
 
 - `MOV`, which is a normal literal MOV. Also has MOV\_T1 and MOV\_T2 variants.
-- `MOV\_L`, which moves only to the lower 16-bits. This should be used in 16-bit value sets. Has \_T1 and \_T2 variants.
-- `MOV\_U`, which moves only to the upper 16-bits. This should be used in 16-bit value sets. Only has \_T1 variant, as \_T2 is only 8-bits.
+- `MOV_L`, which moves only to the lower 16-bits. This should be used in 16-bit value sets. Has \_T1 and \_T2 variants.
+- `MOV_U`, which moves only to the upper 16-bits. This should be used in 16-bit value sets. Only has \_T1 variant, as \_T2 is only 8-bits.
 
 Examples:
 ```
@@ -756,7 +756,7 @@ These instructions allow for modifying a set of bits within a register value. It
 a starting bit, a bit count, and a value to set. Each data path must always be used for these instructions,
 as operands are spread out between them. The destination of data path two is with the value of the starting
 bit added to the bit count. The normal behavior is to clear the bits in the source before setting them to
-the new value supplied. The `\_T1` behavior doesn't clear them, which behaves more like a logical OR. The
+the new value supplied. The `_T1` behavior doesn't clear them, which behaves more like a logical OR. The
 `_T2` behavior clears all bits above the starting bit of the value to be set. Examples:
 
 ```
