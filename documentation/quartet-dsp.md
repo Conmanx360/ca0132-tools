@@ -1,4 +1,5 @@
-# Quartet DSP (X-Fi DSP)
+# Quartet DSP (X-Fi DSP) Documentation:
+
 The ca0132 codec is essentially the same hardware as the Sound Blaster X-Fi,
 with the difference being that it sits behind an 8051 microcontroller which
 handles the HDA interface.
@@ -9,6 +10,7 @@ the DSP is taken out of it's halt state and set to run. Once the DSP is running,
 all audio streams are routed through it and it's DMA controllers.
 
 ## Sections:
+- [Overview](#quartet-dsp-overview)
 - [Registers](#registers)
   - [Local Hardware Registers](#local-hardware-registers)
   - [Address/Address Modifier Registers](#addressaddress-modifier-registers)
@@ -23,7 +25,39 @@ all audio streams are routed through it and it's DMA controllers.
 - [Opcodes/Assembly](#opcodesassembly)
   - [Opcodes](#opcodes)
   - [Assembly Syntax](#assembly-syntax)
-  - [Main Instructions](#main-instructions)
+  - [Move Instructions](#move-instructions)
+    - [Register-Register Move] (#registerregister-move)
+    - [Register-Literal Move] (#registerliteral-move)
+    - [Register-RAM Move] (#registerram-move)
+    - [Register-Stack Move] (#registerstack-move)
+  - [Bit Manipulation Instructions](#bit-manipulation-instructions)
+    - [Bitwise Logic Operators] (#bitwise-logic-operators)
+    - [Bit Shifts] (#bit-shifts)
+    - [Bit Counting] (#bit-counting)
+    - [Single Bit Modify] (#single-bit-modify)
+    - [Multi Bit Modify] (#multi-bit-modify)
+    - [Multi Bit Extract] (#multi-bit-extract)
+  - [Program Flow Instructions](#program-flow-instructions)
+    - [Address Set] (#address-set)
+    - [Returns] (#returns)
+    - [Interrupts] (#interrupts)
+    - [Loops] (#loops)
+  - [Math Instructions](#math-instructions)
+    - [R = X Y Math] (#r-=-x-y-math)
+    - [R = X Y A Math] (#r-=-x-y-a-math)
+  - [Value Manipulation Instructions](#value-manipulation-instructions)
+    - [Absolute Value] (#absolute-value)
+    - [Negate Value] (#negate-value)
+    - [Type Conversion] (#type-conversion)
+  - [Floating Point Specific Instructions](#floating-point-specific-instructions)
+    - [Value Extract] (#)
+    - [Sine/Cosine/ArcTangent] (#)
+    - [] (#)
+    - [Reciprocal] (#)
+    - [Reciprocal Division] (#)
+    - [DFT Calculation] (#)
+
+
     - [MOV](#mov-based-instructions)
     - [MOVX](#movx-based-instructions)
     - [CALL/JMP](#calljmps_jmps_call-instructions)
@@ -34,6 +68,7 @@ all audio streams are routed through it and it's DMA controllers.
     - [AND/OR/XOR](#andorxor-instructions)
     - [INV/ABS/CMPL](#invabscmpl-instructions)
     - [I\_TO\_F/F\_TO\_I](#i_to_ff_to_i-instructions)
+    - [F\_RCP/F\_RCP\_SQRT/\F\_RCP\_DIV](#poppush-instructions)
     - [RR/RL/ARITH\_RR/ARITH\_RL](#rrrlarith_rrarith_rl-instructions)
     - [FFS/FFU/I\_ABS\_FFS](#ffsffui_abs_ffs-instructions)
     - [SET\_BIT/CLR\_BIT/TGL\_BIT](#set_bitclr_bittgl_bit-instructions)
@@ -43,7 +78,8 @@ all audio streams are routed through it and it's DMA controllers.
     - [MOV\_P/MOV\_T1\_P](#movpmovt1p-instructions)
     - [EXEC\_COND\_P](#execcondp-instructions)
   - [Register Ranges](#register-ranges)
-    - [MOV SRC, DST](#mov-src-dst-register-ranges)
+    - [MOV SRC, DST Register](#mov-src-dst-register-ranges)
+    - [MOV SRC, DST Literal](#mov-src-dst-literal-ranges)
     - [MOVX A\_REG, OFFSET](#movx-a_reg-offset-register-ranges)
     - [R = X Y](#r--x-y-register-ranges)
     - [R = X Y A](#r--x-y-a-register-ranges)
@@ -581,23 +617,17 @@ MOV_P @A_R0_Y, R03 /
 MOV R00, R01 :
 MOV R06, R07;
 ```
-
-## Main Instructions:
-According to Creative, there are 235 main instructions. I will detail the ones I have found out here.
-
-### MOV Based Instructions:
-MOV based instructions all have two operands, a source and a destination.
+## Move Instructions:
+Instructions for moving between a source and destination in memory.
 
 
-#### MOV/MOV\_T1/MOV\_T2:
-The main MOV instructions come in three types.
+### Register-Register Move:
+The main register-register move instructions come in three types.
 
+- `MOV` is a regular move, and moves between all register normally.
+- `MOV_T1` Moves the upper 32-bits of R04/R05/R12/R13 (accumulators.)
+- `MOV_T2` moves the upper 8 bits of R04/R05/R12/R13.
 
-- MOV is a regular move, and moves between all register normally.
-- MOV\_T1 Moves the upper 32-bits of R04/R05/R12/R13 (accumulators.)
-- MOV\_T2 moves the upper 8 bits of R04/R05/R12/R13.
-
-#### MOV with source modifiers:
 The main MOV instruction can also be used with source modifiers, which are:
 
 - Increment, example: `MOV R00, R01++;`.
@@ -605,78 +635,230 @@ The main MOV instruction can also be used with source modifiers, which are:
 - Rotate right by 1, example: `MOV R00, R01 >> 1;`.
 - Rotate left  by 1, example: `MOV R00, R01 << 1;`.
 
-These can only be used with regular MOV instructions, so MOV\_T1 and MOV\_T2 are incompatible.
-Length two literals are compatible.
+These modifiers can only be used with regular MOV instructions, so MOV\_T1 and MOV\_T2 are incompatible.
+[Operand register ranges here.](#mov-src-dst-register-ranges)
 
-#### MOV Literals:
+
+### Register-Literal Move:
 MOV literals consistent of:
 
-- MOV, which is a normal literal MOV. Also has MOV\_T1 and MOV\_T2 variants.
-- MOV\_L, which moves only to the lower 16-bits. This should be used in 16-bit value sets. Has \_T1 and \_T2 variants.
-- MOV\_U, which moves only to the upper 16-bits. This should be used in 16-bit value sets. Only has \_T1 variant, as \_T2 is only 8-bits.
+- `MOV`, which is a normal literal MOV. Also has MOV\_T1 and MOV\_T2 variants.
+- `MOV\_L`, which moves only to the lower 16-bits. This should be used in 16-bit value sets. Has \_T1 and \_T2 variants.
+- `MOV\_U`, which moves only to the upper 16-bits. This should be used in 16-bit value sets. Only has \_T1 variant, as \_T2 is only 8-bits.
 
-### MOVX Based Instructions:
+Examples:
+```
+/* Full moves require 4 operands always. */
+MOV R00, #0xfef00000 : /* R00 = 0xfef00000. */
+MOV CR_0x00000000, #0x00000000; /* Use constant register 0 as destination if data path 2 is unused. */
 
-MOVX has \_T1 and regular MOV variants, but no \_T2 variant. No MOVX
-instruction supports parallel instructions.
+MOV_L R00, #0xfef0; /* R00 = 0x0000fef0. */
 
-#### MOVX With Literal Integer Offset:
-MOVX with literal integer offsets take an address register argument with a
-literal integer offset. They can be source/destination swapped. In the case of
-dual data path instructions, the first address register must be XRAM, and the
-second must be YRAM. In single data path instructions, either can be used.
+MOV_U R00, #0xfef0; /* R00 = 0xfef00000. */
+```
 
-- Address register destination example: `MOVX @A_R0_X - 17, R02;`.
-- Address register source example: `MOVX R03, @A_R6_Y + 18;`.
-- Dual example `MOVX @A_R2_X + 5, R00 : @A_R2_Y + 2, R01;`.
+[Operand register ranges here.](#mov-src-dst-literal-ranges)
 
 
-#### MOVX With Address Modifier Offset:
-Same behavior as above, except instead of taking a literal integer offset, it
-takes an address modifier register.
+### Register-RAM Move:
+MOVX instructions take a register argument and an indirect address from an address register
+with an offset. Offsets can either be a literal value or an address modifier register. MOVX
+has \_T1 and regular MOV variants, but no \_T2 variant. For single data path reads, either
+X or Y RAM can be selected. For dual data path reads, data path 1 must be XRAM, and data path
+2 must be YRAM. No MOVX instruction supports parallel ops.
 
-- Address register destination example: `MOVX @A_R0_X + A_MD2, R02;`.
-- Address register source example: `MOVX R03, @A_R6_Y + A_MD0;`.
-- Dual example `MOVX @A_R2_X + A_MD3, R00 : @A_R2_Y + A_MD4, R01;`.
+- Literal address offset example: `MOVX @A_R0_X - 17, R02;`.
+- Address register modifier offset example: `MOVX R00, @A_R1_Y + A_MD2;`
+- Dual data path literal offset example: `MOVX R00, @A_R2_X + 5 : R01, @A_R2_Y + 3;`
+- Dual data path address register modifier offset example: `MOVX @A_R3_X + A_MD2, R00 : @A_R2_Y + A_MD3, R01;`
+
+[Operand register ranges here.](#movx-a_reg-offset-register-ranges)
 
 
-### CALL/JMP/S\_JMP/S\_CALL Instructions:
-JMPC/JMPC\_T1 are not fully understood.
+## Bit Manipulation Instructions:
+
+### Bitwise Logic Operators:
+The DSP has bitwise instructions for AND, OR, XOR, and CMPL. Examples below:
+
+- `AND R00, R02, R03;` r00 = r02 & r03.
+- `OR R00, R02, R03;`, r00 = r02 | r03.
+- `XOR R00, R02, R03;`, r00 = r02 ^ r03.
+- `CMPL R00, R01;`, r00 = ~r01.
+
+Register ranges for binary operations [here,](#r--x-y-register-ranges), register ranges for
+unary operations (CMPL) [here.]((#mov-src-dst-register-ranges)
+
+### Bitshifts:
+The DSP has three different kinds of shifts:
+
+- Rotate, `RO`, which wraps bits around upon sliding off the end.
+- Shift, `SH`, which loses bits when they slide off the end.
+- Arithmetic Shift, `A_SH`, same as regular shift, except sign bits are preserved.
+
+There is also an instruction that performs a right shift without setting a destination register,
+only setting the status registers, which is useful for checking certain conditions. Examples:
 
 
-#### JMP/JMPC/JMPC\_T1/CALL:
-These instructions take an address literal, or an address register to set the
-PC. They all have an 8-bit conditional that is not yet fully understood.
-Literal `#0x0f` seems to be always true.
+```
+r01 = 0x80000003.
+
+RO_R R00, R01, #0x01; /* r00 = 0xc0000001, first bit wraps around. */
+RO_L R00, R01, #0x01; /* r00 = 0x00000007, final bit wraps around. */
+
+SH_R R00, R01, #0x01; /* r00 = 0x40000001, first bit cut off. */
+SH_L R00, R01, #0x01; /* r00 = 0x00000006, final bit cut off. */
+
+A_SH_R R00, R01, #0x01; /* r00 = 0xc0000001, first bit cut off, sign extended. */
+A_SH_L R00, R01, #0x01; /* r00 = 0x00000006, final bit cut off, sign into carry flag. */
+
+SH_R_CHK R00, R01, #0x01; /* r00 unmodified, but flags are set. */
+```
+
+Bit shifts use the R = X Y layout, so a register can also be used as the shift value.
+Register ranges are [here.](#r--x-y-register-ranges)
+
+### Bit Counting:
+These instructions count from the most significant bit until the specified condition is
+met. There are two possible conditions:
+
+- Find First Set, `FFS`, stops counting at the first set bit.
+- Find First Unset, `FFU`, stops counting at the first unset bit.
+
+There is also a variation of Find First Set for signed integers, which counts the
+bits of the absolute value. This instruction is `I_ABS_FFS`. Examples:
+
+```
+r01 = 0x80000000.
+r02 = 0x00000001. 
+r03 = 0xffffffff.
+
+FFS R00, R01; /* r00 = 0x00000000, since the MSB is set. */
+FFU R00, R01; /* r00 = 0x00000001, since the bit after the MSB is unset. */
+I_ABS_FFS R00, R01 /* r00 = 0x00000000, as this is -0x7ffffff. */
+
+FFS R00, R02; /* r00 = 0x0000001f, 31, since the only bit set is the LSB. */
+FFU R00, R02; /* r00 = 0x00000000, since the MSB is unset. */
+I_ABS_FFS R00, R02; /* r00 = 0x0000001e, 30, due to this being treated as
+                     * positive signed integer, which has a shorter range. */
+
+FFS R00, R03; /* r00 = 0x00000000, since the MSB is set. */
+FFU R00, R03; /* r00 = 0x00000020, 32, since no bit is unset. */
+I_ABS_FFS R00, R03; /* r00 = 0x0000001f, since this is -1, and the absolute value is 1. 
+                     * Due to negative signed integers having a higher value range than
+                     * positive signed integer values, the count starts one bit higher. */
+
+```
+
+[Operand register ranges here.](#mov-src-dst-register-ranges)
+
+
+### Single Bit Modify:
+These instructions modify single bits in a given register. The possible bit modifications are:
+
+- Set, `SET_BIT`, which sets a given bit.
+- Clear, `CLR_BIT`, which clears a given bit.
+- Toggle, `TGL_BIT`, which inverts a bit, i.e if the bit was set, it's cleared, if it was unset, it's set.
+
+There are also variations for setting and clearing bits in the `SEMAPHORE_G_REG` register. Examples:
+```
+r01 = 0x00000001.
+
+SET_BIT R00, R01, #0x01; /* r00 = 0x00000003, bit 1 is now set. */
+CLR_BIT R00, R01, #0x00; /* r00 = 0x00000000, bit 0 is now unset. */
+TGL_BIT R00, R01, #0x00; /* r00 = 0x00000000, bit 0 toggled to 0. */
+TGL_BIT R00, R01, #0x02; /* r00 = 0x00000005, bit 2 is toggled to 1. */
+
+SET_SEM_G_BIT R04, R01, #0x01; /* Sets SEMAPHORE_G_REG to 0x00000003.
+                                * If the destination register isn't R04, it 
+                                * the specified register has it's value cleared. */
+CLR_SEM_G_BIT R04, R01, #0x00; /* Sets SEMAPHORE_G_REG to 0x00000000. */
+
+```
+
+Register ranges are [here.](#r--x-y-register-ranges)
+
+
+### Multi Bit Modify:
+These instructions allow for modifying a set of bits within a register value. It takes a source register,
+a starting bit, a bit count, and a value to set. Each data path must always be used for these instructions,
+as operands are spread out between them. The destination of data path two is with the value of the starting
+bit added to the bit count. The normal behavior is to clear the bits in the source before setting them to
+the new value supplied. The `\_T1` behavior doesn't clear them, which behaves more like a logical OR. The
+`_T2` behavior clears all bits above the starting bit of the value to be set. Examples:
+
+```
+r01 = 0x10;
+r02 = 0x01234567;
+r03 = 0x06;
+r06 = 0x08;
+
+SET_BITS R00, R01, R02, R03 : CR_0x00000000, CR_0x00000000, CR_0x00000000, R06; /* r00 = 0x01064567; */
+Equivalent C expression: r00 = ((r03 & ((1 << r06) - 1)) << r01) | (r02 & ~(((1 << r06) - 1)) << r01);
+
+SET_BITS_T1 R00, R01, R02, R03 : CR_0x00000000, CR_0x00000000, CR_0x00000000, R06;
+Results in r00 = 0x01274567;
+Equivalent C expression: r00 = ((r03 & ((1 << r06) - 1)) << r01) | r02;
+
+SET_BITS_T2 R00, R01, R02, R03 : CR_0x00000000, CR_0x00000000, CR_0x00000000, R06;
+Results in r00 = 0x00064567;
+Equivalent C expression: r00 = ((r03 & ((1 << r06) - 1)) << r01) | (r02 & ~((1 << (32 - r01))));
+
+Data path 2's X and Y registers go unused.
+```
+
+Register ranges are [here.](#r--x-y-a-register-ranges)
+
+
+### Multi Bit Extract
+This instruction extracts bits from a given register. It takes a starting bit, a bit count, and a source
+register. Both data paths must always be used for this instruction, as operands are spread out between
+the two. It also stores the value of the starting bit and bit count added together in the destination
+register for the second data path, which would be the highest bit of the extracted value. Example:
+
+
+```
+r01 = 0x00fef000.
+r02 = 0x0000000c.
+r03 = 0x00000008.
+
+GET_BITS R00, R01, R02 : R06, R03, CR_0x00000000; /* r00 = 0x000000ef. r06 = 0x00000014. */
+
+Equivalent C expression: r00 = (r01 >> r02) & ((1 << r03) - 1);
+Operand Y on data path 2 goes unused.
+```
+Register ranges are [here.](#r--x-y-register-ranges)
+
+
+## Program Flow Instructions
+
+
+### Address Set
+There are currently four different instructions for setting the program counter,
+`CALL`, which is a function call,  `JMP`, which is a normal jump, and `JMPC/JMPC_T1` which
+are not yet understood. Each instruction also has an `S_` prefix variant, which takes a
+signed integer offset from the current PC value. Each instruction contains an 8-bit 
+conditional value, which is not yet fully understood. The value `#0x0f` seems to equate to 
+always true. Examples:
 
 - Call literal address example: `CALL #0x0f, #0xdf00;`.
 - Call address register example: `CALL #0x0f, A_R0;`.
 - Jump literal address example: `JMP #0x0f, #0x0e20;`.
 - Jump address register example: `JMP #0x0f, A_R0;`.
+- Call literal PC offset example: `S_CALL #0x0f, #-23;`.
+- Jump literal PC offset example: `JMP #0x0f, #5;`.
 
 
-#### S\_JMP/S\_JMPC/S\_JMPC\_T1/S\_CALL:
-These instructions take a signed integer offset from the current PC. They also
-take the same 8-bit conditional as the regular instructions.
+### Returns 
+There are currently two different known return variants: 
 
-- Call literal address example: `CALL #0x0f, #0xdf00;`.
-- Jump literal address example: `JMP #0x0f, #0x0e20;`.
+- `RET`, which is a regular function call return.
+- `RETI`, which is an interrupt return.
 
-
-### RET/RETI Instructions:
-
-
-#### RET.
-Regular return, `RET;`. Decrements the PC\_STK\_PTR lower 16-bits.
+Each get their return address from the call stack and decrement the `PC_STK_PTR` register.
+`RETI` also restores the `COND_CODE` register and decrements the `STA_S_STACK_PTR` register.
 
 
-#### RETI.
-Interrupt return, `RETI;`. Decrements the PC\_STK\_PTR lower 16-bits, and the
-STA\_S\_STK\_PTR, which stores the COND\_CODE register, and restores it's
-value.
-
-
-### Interrupt Instructions:
+### Interrupts
 
 #### INT\_ENABLE/INT\_DISABLE:
 These instructions enable/disable processor interrupts, `INT_ENABLE;`,
@@ -687,50 +869,53 @@ These instructions enable/disable processor interrupts, `INT_ENABLE;`,
 Clears the interrupt pin provided by the literal, `INT_CLR #0x00;` through
 `INT_CLR #0x0f;`.
 
-
-### ADD/SUB/MUL/NMUL/FMAC Instructions:
-All of these instructions  have the format of `r = (x + y)` with different operator variations
-between the two operands. Register ranges are [here.](#r--x-y-register-ranges)
+### Loops
 
 
-#### ADD:
+## Math Instructions
+
+
+### R = X Y Math
+ADD:
 Basic addition, has format of `r = x + y`. Has `_T1` variant with unknown difference.
 
 - `I_ADD R00, R02, R01;`, r00 = r02 + r01.
 - `F_ADD R00, R02, R01;`, r00 = r02 + r01, but floating point.
 
 
-#### SUB:
+SUB:
 Basic subtraction, has format of `r = x - y`. Has `_T1` variant with unknown difference.
 
 - `I_SUB R00, R02, R01;`, r00 = r02 - r01.
 - `F_SUB R00, R02, R01;`, r00 = r02 - r01, but floating point.
 
 
-#### MUL:
+MUL:
 Basic multiplication, has format of `r = x * y`. Has `_T1` and `_T2` variants, with unknown differences.
 
 - `I_MUL R00, R02, R01;`, r00 = r02 * r01.
 - `F_MUL R00, R02, R01;`, r00 = r02 * r01, but floating point.
 
-#### NMUL:
+NMUL:
 Basic multiplication, except product is negated. Has format of `r = -(x * y)`.
 
 - `I_NMUL R00, R02, R01;`, r00 = -(r02 * r01).
 - `F_NMUL R00, R02, R01;`, r00 = -(r02 * r01), but floating point.
 
-#### FMAC:
+FMAC:
 Fused multiply and add to the accumulator, except in this case it's the destination register, so
 `r += x * y`. Currently only a floating point variant is known.
 
 - `F_FMAC R04, R02, R01;`, r04 += r02 * r01.
 
 
-### FMA/FMS/NFMA Instructions:
+
+### R = X Y A Math
+
 FMA instructions all have the format of `r = (x * y) + a`, with different operator variations
 between the operands. Register ranges are [here.](#r--x-y-a-register-ranges)
 
-#### FMA:
+FMA:
 Basic fused multiply add, `r = (x * y) + a`. `I_FMA` for integer, and `F_FMA` for
 floating point. There is currently one known opcode that does FMA a little bit differently,
 and I've marked this `_T2`. Example instruction:
@@ -740,7 +925,7 @@ and I've marked this `_T2`. Example instruction:
 - `F_FMA R04, R12, R02, R03;`, r04 = (r12 * r02) + r03, but floating point.
 
 
-#### FMS:
+FMS:
 Same basic format of FMA, except this time it's fused multiply and subtract, `r = (x * y) - a`.
 Has a `_T1` variant, unknown difference.
 
@@ -749,7 +934,7 @@ Has a `_T1` variant, unknown difference.
 - `F_FMS R04, R12, R02, R03;`, r04 = (r12 * r02) - r03, but floating point.
 
 
-#### NFMA:
+NFMA:
 Basic FMA, except the product of the multiplication is negated, `r = -(x * y) + a`.
 Has a `_T1` variant, unknown difference.
 
@@ -758,32 +943,17 @@ Has a `_T1` variant, unknown difference.
 - `F_NFMA R04, R12, R02, R03;`, r04 = -(r12 * r02) + r03, but floating point.
 
 
-### AND/OR/XOR Instructions:
-All of these instructions  have the format of `r = (x & y)` with different operator variations
-between the two operands. Register ranges are [here.](#r--x-y-register-ranges)
-
-#### AND:
-Basic bitwise AND instruction.
-
-- `AND R00, R02, R03;`, r00 = r02 & r03.
+## Value Manipulation Instructions
 
 
-#### OR:
-Basic bitwise OR instruction.
+### Absolute Value
+Basic absolute value instruction. Has float and integer version.
 
-- `OR R00, R02, R03;`, r00 = r02 | r03.
-
-
-#### XOR:
-Basic bitwise XOR instruction.
-
-- `XOR R00, R02, R03;`, r00 = r02 ^ r03.
+- `I_ABS R00, R01;`, r00 = abs(r01).
+- `F_ABS R00, R01;`, r00 = abs(r01).
 
 
-### INV/ABS/CMPL Instructions:
-All of these instructions share the MOV layout, so `dst = src`, with different modifiers
-applied to the source operand. Register ranges are [here.](#mov-src-dst-register-ranges)
-
+### Negate Value
 #### INV:
 Basic sign inversion instruction. Has float and integer version.
 
@@ -791,21 +961,7 @@ Basic sign inversion instruction. Has float and integer version.
 - `F_INV R00, R01;`, r00 = -r01.
 
 
-#### ABS:
-Basic absolute value instruction. Has float and integer version.
-
-- `I_ABS R00, R01;`, r00 = abs(r01).
-- `F_ABS R00, R01;`, r00 = abs(r01).
-
-
-#### CMPL:
-Bitwise complement. Only one version, because this wouldn't make sense to have integer/float
-versions.
-
-- `CMPL R00, R01;`, r00 = ~r01.
-
-
-### I\_TO\_F/F\_TO\_I Instructions:
+### Type Conversion
 These instructions convert values between integer and floating point representations.
 The formatting is a little bit odd though, as it uses `r = x y` representation. Register ranges
 are [here.](#r--x-y-register-ranges)
@@ -829,154 +985,13 @@ So, if the y value is 0, you get a straight float to int conversion. Otherwise, 
 point value in x multiplied by 2 to the power of y.
 
 
-### RR/RL/ARITH\_RR/ARITH\_RL Instructions:
-These instructions perform bitshifts, and take the form `r = x >> y`, with either left or
-right bitshifts. Register ranges are [here.](#r--x-y-register-ranges)
+## Floating Point Specific Instructions
+### Value Extract
+### Sine/Cosine/ArcTangent
+### Reciprocal
+### Reciprocal Division
+### DFT Calculation
 
-#### RR/RL:
-Regular rotate instructions. Has a `_T1` variant, unknown difference. Examples:
-
-- `RL R00, R02, #2;`, r00 = r02 << 2.
-- `RL R00, R02, R01;`, r00 = r02 << r01.
-- `RR R00, R02, #3;`, r00 = r02 >> 3.
-- `RR R00, R02, R06;`, r00 = r02 >> r06.
-
-
-#### ARITH\_RR/ARITH\_RL:
-Arithmetic rotate instructions. These do sign extension of the MSB if it is set.
-This allows the preservation of the sign of a bitshifted signed int. Examples:
-
-- `ARITH_RL R00, R02, #2;`, r00 = r02 << 2.
-- `ARITH_RL R00, R02, R01;`, r00 = r02 << r01.
-- `ARITH_RR R00, R02, #3;`, r00 = r02 >> 3.
-- `ARITH_RR R00, R02, R06;`, r00 = r02 >> r06.
-
-
-An example of this behavior:
-```
-if r02 = 0x80000000,
-ARITH_RR R00, R02, #1;
-
-Will result in r00 = 0xc0000000, as the sign bit is extended.
-
-if r02 = 0x00000000,
-ARITH_RR R00, R02, #1;
-
-Will result in r00 = 0x00000000, as there is no sign bit to extend.
-```
-
-### FFS/FFU/I\_ABS\_FFS Instructions:
-These instructions find the first set/unset bit, starting from the MSB. These take a
-source and destination register, like a MOV instruction. Register ranges are [here.](#mov-src-dst-register-ranges)
-
-#### FFS:
-Find first set instruction. Finds the first bit set in the source register, counting from the MSB.
-Example:
-
-- `FFS R00, CR_0x00000001;`, would have r00 = 0x1f.
-
-
-#### FFU:
-Find first unset instruction. Finds the first bit unset in the source register, counting from the MSB.
-Example:
-
-- `FFU R00, CR_0xfffffffe;`, would have r00 = 0x1f.
-
-
-#### I\_ABS\_FFS:
-This instruction gets the absolute value of the signed int in the source register before finding
-the first set bit. Due to negative integers having a larger range, they count an extra bit.
-Example:
-
-- `I_ABS_FFS R00, CR_0x00000002;`, would have r00 = 0x1d, 29.
-- `I_ABS_FFS R00, CR_0xfffffffe;`, would have r00 = 0x1e, 30.
-
-
-As you can see, -2's first set bit is one larger than positive two, due to having different ranges.
-
-
-### SET\_BIT/CLR\_BIT/TGL\_BIT Instructions:
-These instructions set, clear, and toggle bits in a register. They take the form of `r = x | (1 << y)`.
-There are also two special instructions for setting/clearing the SEMAPHORE\_G\_REG bits. Register ranges
-are [here.](#r--x-y-register-ranges)
-
-
-#### SET\_BIT:
-This one takes the form of `r = x | (1 << y)`. If the bit is unset, it's set. Otherwise,
-it's left alone. Examples:
-
-- `SET_BIT R00, R01, R02;`, r00 = r01 | (1 << r02);
-- `SET_BIT R00, R01, #2;`, r00 = r01 | (1 << 2);
-
-
-#### CLR\_BIT:
-This one takes the form of `r = x & ~(1 << y)`. If the bit is set, it's cleared. Otherwise,
-it's left alone. Examples:
-
-- `CLR_BIT R00, R01, R02;`, r00 = r01 & ~(1 << r02);
-- `CLR_BIT R00, R01, #1;`, r00 = r01 & ~(1 << 1);
-
-
-#### TGL\_BIT:
-This one takes the form of `r = x ^ (1 << y)`. If the bit is 1, it's cleared, if it's 0, it's set.
-Examples:
-
-- `TGL_BIT R00, R01, R02;`, r00 = r01 & ~(1 << r02);
-- `TGL_BIT R00, R01, #3;`, r00 = r01 & ~(1 << 3);
-
-
-#### SET\_SEM\_G\_BIT/CLR\_SEM\_G\_BIT:
-Does the same as the regular SET\_BIT instruction, except r in `r = x | (1 << y)` is
-always the SEMAPHORE\_G\_REG, and the supplied r register operand is always cleared. Only
-takes literal values for the Y operand. Examples:
-
-- `SET_SEM_G_BIT R04, R01, #5;`, SEMAPHORE\_G\_REG = r01 | (1 << 5), r04 = 0.
-- `CLR_SEM_G_BIT R04, R01, #5;`, SEMAPHORE\_G\_REG = r01 & ~(1 << 5), r04 = 0.
-
-
-### GET\_BITS/SET\_BITS Instructions:
-These instructions allow for extracting/setting bits within a register. Both GET and SET
-require both data paths to function, as they take operands from both data paths. GET register
-ranges are [here,](#r--x-y-register-ranges), SET register ranges are [here.](#r--x-y-a-register-ranges)
-
-#### GET\_BITS:
-This one takes the form of `r0 = (x0 >> y0) & ((1 << x1) - 1)`. r0 is the destination register,
-x0 is the register to extract the bits from, y0 is the starting bit, and x1 is the bit count.
-If r1 is set to a non-constant register, it stores the value of y0 + x1, which is the highest
-bit of the extracted value. The y1 register seems to go unused.
-
-Example:
-
-- `GET_BITS R00, R01, R02 : R03, R06, CR_0x00000000;`, r00 = (r01 >> r02) & ((1 << r06) - 1). r03 = r02 + r06.
-
-
-#### SET\_BITS:
-This one takes the form of `r0 = ((a0 & ((1 << a1) - 1)) << x0) | y0`. This has three different variants.
-The default behavior is to clear the bits to be set before setting them. The \_T1 behavior doesn't clear
-the bits to set before setting them, making it essentially bitshift with OR. The \_T2 variant clears all
-bits above the highest bit of our set value. Operands x1 and y1 seem to go unused. Operand r1 behaves
-the same as GET\_BITS, where the starting bit and bit count are added together and stored into it.
-Examples of each variant:
-
-
-```
-r01 = 0x10;
-r02 = 0x01234567;
-r03 = 0x06;
-r06 = 0x08;
-
-SET_BITS R00, R01, R02, R03 : CR_0x00000000, CR_0x00000000, CR_0x00000000, R06;
-Results in r00 = 0x01064567;
-
-SET_BITS_T1 R00, R01, R02, R03 : CR_0x00000000, CR_0x00000000, CR_0x00000000, R06;
-Results in r00 = 0x01274567;
-
-SET_BITS_T2 R00, R01, R02, R03 : CR_0x00000000, CR_0x00000000, CR_0x00000000, R06;
-Results in r00 = 0x00064567;
-```
-
-
-### POP/PUSH Instructions:
 
 ## Parallel Instructions:
 
@@ -1059,6 +1074,35 @@ data path.
 | Destination0       | 11-bits, R00-YGPRAM\_015.          | 
 | Source0 Literal    | 32-bits, #0x00000000-#0xffffffff   |
 | Destination1       | 11-bits, R00-YGPRAM\_015.          | 
+| Source1 Literal    | 32-bits, #0x00000000-#0xffffffff   |
+
+
+### MOV SRC, DST Literal Ranges:
+#### Single Length Register Range:
+Single length literal move instructions seem to be broken, so I haven't included it.
+It seems to overlap the literal value with the register operand.
+
+
+#### Double Length Register Range:
+Length two literal value moves are limited to 16-bit values, and must be the same
+literal value for both destination registers. Literal value operands take the form of
+`#0xffff`.
+|   Operand Type     |            Range                   |
+| -----------------  | ---------------------------------- |
+| Destination0       | 11-bits, R00-YGPRAM\_015. |
+| Source0 Literal    | 16-bits, #0x0000-#0xffff. |
+| Destination1       | 11-bits, R00-YGPRAM\_015. |
+| Source1 Literal    | 16-bits, #0x0000-#0xffff. |
+
+
+#### Quad Length Register Range:
+Length four literal value moves are 32-bits each, and can be different for each
+data path.
+|   Operand Type     |            Range                   |
+| -----------------  | ---------------------------------- |
+| Destination0       | 11-bits, R00-YGPRAM\_015.          |
+| Source0 Literal    | 32-bits, #0x00000000-#0xffffffff   |
+| Destination1       | 11-bits, R00-YGPRAM\_015.          |
 | Source1 Literal    | 32-bits, #0x00000000-#0xffffffff   |
 
 
