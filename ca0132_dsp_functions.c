@@ -39,7 +39,7 @@ static const char *dsp_reg_str[] =
 				     "CR_0x00000006", "CR_0x00000005", "CR_F_PI", "CR_F_PI_DIV_2",
 				     "CR_F_PI_DIV_4", "CR_F_1_DIV_PI", "CR_F_1_DIV_2PI", "CR_F_0.5",
 				     "CR_F_1", "CR_F_NEG_1", "CR_F_3", "CR_F_SQRT_0.5",
-				     "CR_B1_12", "CR_B1_13", "CR_B1_14", "CR_B1_15",
+				     "CR_DSP_ID", "CR_B1_13", "CR_B1_14", "CR_B1_15",
 				     "CR_B1_16", "CR_B1_17", "CR_B1_18", "CR_B1_19",
 				     "CR_B1_20", "CR_B1_21", "CR_B1_22", "CR_B1_23",
 				     "TIME0_PER_ENB", "TIME0_COUNTER", "TIME1_PER_ENB", "TIME1_COUNTER",
