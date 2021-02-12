@@ -318,6 +318,7 @@ static const char *reg_dump_exit_asm[] = {
 	"MOV COND_REG, R10;",
 	"MOVX:2 R10, @A_R7_X - 0x000 :\n\
          MOVX:2 R11, @A_R7_Y - 0x000;",
+	"INT_ENABLE;\n",
 	"RET;",
 };
 
