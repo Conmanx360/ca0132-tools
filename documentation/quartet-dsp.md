@@ -847,10 +847,11 @@ Each get their return address from the call stack and decrement the `PC_STK_PTR`
 
 
 ### Interrupts
+There are currently 3 known interrupt instructions that effect control flow:
 
-#### INT\_ENABLE/INT\_DISABLE:
-These instructions enable/disable processor interrupts, `INT_ENABLE;`,
-`INT_DISABLE;`.
+- `HALT`, which halts the DSP until an interrupt is signaled.
+- `INT_DISABLE`, which prevents the DSP from being interrupted.
+- `INT_ENABLE`, which enables the DSP to be interrupted.
 
 
 ### Loops
