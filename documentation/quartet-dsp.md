@@ -37,6 +37,7 @@ all audio streams are routed through it and it's DMA controllers.
     - [Single Bit Modify](#single-bit-modify)
     - [Multi Bit Modify](#multi-bit-modify)
     - [Multi Bit Extract](#multi-bit-extract)
+    - [Interrupt Bit Clear](#interrupt-bit-clear)
   - [Program Flow Instructions](#program-flow-instructions)
     - [Address Set](#address-set)
     - [Returns](#returns)
@@ -801,6 +802,20 @@ Operand Y on data path 2 goes unused.
 ```
 Register ranges are [here.](#r--x-y-register-ranges)
 
+### Interrupt Bit Clear
+Clears the interrupt pin provided by the literal, `INT_CLR #0x00;` through
+`INT_CLR #0x0f;`. Not much testing has been done, but it seems each DSP has 4
+of these specific interrupts, with the `INT_CONT_PEND_REG` containing a bitmask
+for which interrupts need handled and which have been handled. Example:
+
+```
+int_cont_pend_reg = 0x00100405;
+
+INT_CLR #0x03; /* After this, int_cont_pend_reg = 0x00300405. */
+
+The upper bits signify that a particular interrupt has been handled,
+and the lower bits signify which ones still need handled.
+```
 
 ## Program Flow Instructions
 
@@ -837,10 +852,6 @@ Each get their return address from the call stack and decrement the `PC_STK_PTR`
 These instructions enable/disable processor interrupts, `INT_ENABLE;`,
 `INT_DISABLE;`.
 
-
-#### INT\_CLR:
-Clears the interrupt pin provided by the literal, `INT_CLR #0x00;` through
-`INT_CLR #0x0f;`.
 
 ### Loops
 
