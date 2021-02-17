@@ -44,29 +44,25 @@ all audio streams are routed through it and it's DMA controllers.
     - [Interrupts](#interrupts)
     - [Loops](#loops)
   - [Integer Math Instructions](#integer-math-instructions)
-    - [Add/Subtract/Multiply](#r-=-x-y-math)
-    - [Multiply](#r-=-x-y-math)
-    - [Fused Multiply Add/Subtract](#r-=-x-y-a-math)
-    - [Interpolate](#r-=-x-y-a-math)
-    - [Triple Add](#r-=-x-y-a-math)
+    - [Add/Subtract](#integer-addsubtract)
+    - [Multiply](#integer-multiply)
+    - [Fused Multiply Add/Subtract](#integer-fused-multiply-add-and-subtract)
+    - [Interpolate](#integer-interpolate)
+    - [Triple Add](#integer-triple-add)
   - [Floating Point Math Instructions](#floating-point-math-instructions)
-    - [Add/Subtract/Multiply](#r-=-x-y-math)
-    - [Fused Multiply Add/Subtract](#r-=-x-y-a-math)
-    - [Sine/Cosine/ArcTangent](#)
-    - [Reciprocal](#)
-    - [Reciprocal Division](#)
-    - [DFT Calculation](#)
+    - [Add/Subtract/Multiply](#floating-point-addsubtractmultiply)
+    - [Fused Multiply Add/Subtract](#floating-point-fused-multiply-add-and-subtract)
+    - [Sine/Cosine/ArcTangent](#sinecosinearctangent)
+    - [Reciprocal](#reciprocal)
+    - [Reciprocal Division](#reciprocal-division)
+    - [DFT Calculation](#dft-calculation)
   - [Value Manipulation Instructions](#value-manipulation-instructions)
     - [Absolute Value](#absolute-value)
     - [Negate Value](#negate-value)
     - [Type Conversion](#type-conversion)
   - [Floating Point Specific Instructions](#floating-point-specific-instructions)
     - [Value Extract](#)
-    - [Sine/Cosine/ArcTangent](#)
     - [Placeholder](#)
-    - [Reciprocal](#)
-    - [Reciprocal Division](#)
-    - [DFT Calculation](#)
 
 
 ## Quartet DSP overview:
@@ -872,6 +868,8 @@ Integers have many different variations of the basic add, subtract and multiply
 operations due to the accumulator being 70-bits combined. I will attempt to
 describe each below:
 
+
+
 ### Integer Add/Subtract:
 Add and subtract instructions come in two different destination variations,
 upper and lower. Instructions that store their result in the upper portion
@@ -920,17 +918,19 @@ Below are all the possible assembly ops:
 | SUB\_O           | Full accumulator subtract, overflow.             |
 | SUBB\_O          | Full accumulator sub with borrow, overflow.      |
 
+
+
 ### Integer Multiply:
 Like add and subtract, multiply instructions come in two different destination
 variations. However, multiply behaves differently. For 'lower' multiply (defined by the
-`L` prefix), the result is shifted to the right by 31 bits. This matches the behavior
-of the emu10k1 DSP, which used these as 'fractional' multiplies.
+`L` prefix), the result starts in the upper 32-bits, and is shifted to the right by 31 bits.
+This matches the behavior of the emu10k1 DSP, which used these as 'fractional' multiplies.
 
 
 Multiply has unsigned variations, which don't sign extend the operand. These are defined
 by the `_US` suffix. Normally, when a value such as `0x80000000` is multiplied, since the
 MSB is set, the rest of the upper 40-bits are assumed to be set. In unsigned instructions,
-this is not the case. The regular instruction treats the result as signed, and extends
+his is not the case. The regular instruction treats the result as signed, and extends
 the sign if bit 63 is set. The `_T1` instruction treats the result as unsigned. These might
 be considered saturation and overflow, although they don't exactly fit that behavior fully.
 
@@ -939,7 +939,8 @@ Like before, there are saturate and overflow variations, which behave the same a
 subtraction instructions.
 
 
-Below are all the possible assembly ops:
+Below are all the possible assembly ops (reminder, `L` instructions start in
+the upper 32-bits of the accumulator):
 |      Opcode      |                     Behavior                                           |
 | ---------------- | ---------------------------------------------------------------------- |
 | LMUL\_S          | r =  (x * y >> 31). Saturate.                                          |
@@ -947,10 +948,11 @@ Below are all the possible assembly ops:
 | LNMUL\_O         | r = -(x * y >> 31). Result is negated. Overflow.                       |
 | LMUL\_US\_O      | r =  (x * y >> 31). Overflow. Unsigned operands                        |
 | LMUL\_US\_O\_T1  | r =  (x * y >> 31). Overflow. Unsigned operands + result.              |
-| MUL\_O           | r =  (x * y >> 32). Overflow.                                          |
-| NMUL\_O          | r = -(x * y >> 32). Result is negated. Overflow.                       |
-| MUL\_US\_O       | r =  (x * y >> 32). Overflow. Unsigned operands.                       |
-| MUL\_US\_O\_T1   | r =  (x * y >> 32). Overflow. Unsigned operands + result.              |
+| MUL\_O           | r =  (x * y). Overflow.                                                |
+| NMUL\_O          | r = -(x * y). Result is negated. Overflow.                             |
+| MUL\_US\_O       | r =  (x * y). Overflow. Unsigned operands.                             |
+| MUL\_US\_O\_T1   | r =  (x * y). Overflow. Unsigned operands + result.                    |
+
 
 
 ### Integer Fused Multiply Add and Subtract:
@@ -960,10 +962,7 @@ I will describe them below.
 There are basically add, add accumulate, add accumulate move, negate mul, subtract,
 upper/lower,
 
-Like regular multiply, these instructions are split between the 'lower' multiply behavior and
-regular multiply. We also have saturate and overflow like before.
-
-The main different with these instructions are the `_AC` and `_MV` suffixes.
+The main difference with these instructions are the `_AC` and `_MV` suffixes.
 
 - `_AC` means accumulate, so the format is `r += (x y) a` rather than `r = (x y) a`.
 - `_MV` means move, in these instructions take the format of `r += (x * y); a = r;`.
@@ -971,47 +970,100 @@ The main different with these instructions are the `_AC` and `_MV` suffixes.
 The plain accumulate instructions only take two operands, X and Y, so they're technically not
 `r = x y a` instructions, although they fit in more here than in the original catagory.
 
-Accumulate move instructions will move the lower part of the accumulator on `L` instructions, and
-the upper portion on regular. If the result is
+Accumulate move instructions will move the upper part of the accumulator on `L` instructions, and
+the lower portion on regular. On non `L` saturation instructions, if the
+result was larger than the lower 32-bits, the move will always set the
+register to the saturation value. This means that even if we didn't saturate
+the full 63 bits and the accumulator is fine, the move will return
+`0x7fffffff` for positive, and `0x80000000` for negative.
 
-|      Opcode      | Args |                     Behavior                     |
-| ---------------- | ---- | ------------------------------------------------ |
-| LMA\_AC\_S       |  2   |                                                  |
-| LMA\_S           |  3   |                                                  |
-| LMA\_AC\_MV\_S   |  3   |                                                  |
-| LNMA\_LMA\_S     |  3   |                                                  |
-| LNMA\_S          |  3   |                                                  |
-| LMS\_AC\_MV\_S   |  3   |                                                  |
-| LMS\_S           |  3   |                                                  |
-| LMA\_O           |  3   |                                                  |
-| LMA\_AC\_O       |  2   |                                                  |
-| LMA\_AC\_MV\_O   |  3   |                                                  |
-| LNMA\_LMA\_O     |  3   |                                                  |
-| LNMA\_O          |  3   |                                                  |
-| LMS\_O           |  3   |                                                  |
-| MA\_AC\_S        |  2   |                                                  |
-| MA\_AC\_O        |  2   |                                                  |
-| MA\_S            |  3   |                                                  |
-| MA\_C\_S         |  3   |                                                  |
-| MA\_AC\_MV\_S    |  3   |                                                  |
-| NMA\_MA\_S       |  3   |                                                  |
-| NMA\_S           |  3   |                                                  |
-| MS\_S            |  3   |                                                  |
-| MA\_O            |  3   |                                                  |
-| MA\_C\_O         |  3   |                                                  |
-| MA\_AC\_MV\_O    |  3   |                                                  |
-| NMA\_MA\_O       |  3   |                                                  |
-| NMA\_O           |  3   |                                                  |
-| MS\_O            |  3   |                                                  |
+
+Without either suffix, the behavior is `r = (x * y) +/- a;`.
+
+
+For lower instructions, the added ACC register is added in the upper 32-bits
+of the accumulator. Example:
+```
+R00 = 0x00000002;
+R01 = 0x00000004;
+R02 = 0x00000020;
+
+LMA_S R04, R00, R01, R02;
+
+Would result in: 0x00 00000020 00000010.
+
+R02 is added in the upper 32-bits, and R00 * R01 is shifted to the right by
+31-bits.
+```
+
+Lower instructions:
+|      Opcode      | Args |                     Behavior                                 |
+| ---------------- | ---- | ------------------------------------------------------------ |
+| LMA\_AC\_S       |  2   | r +=  (x * y >> 31). Saturate.                               |
+| LMA\_S           |  3   | r =   (x * y >> 31) + a. Saturate.                           |
+| LMA\_AC\_MV\_S   |  3   | r +=  (x * y >> 31), a = upper r. Saturate.                  |
+| LNMA\_LMA\_S     |  3   | r0 = -(x * y >> 31) + a, r1 = (x * y >> 31) + a. Saturate.   |
+| LNMA\_S          |  3   | r =  -(x * y) + a. Saturate.                                 |
+| LMS\_AC\_MV\_S   |  3   | r += -(x * y), a = upper r. Saturate.                        |
+| LMS\_S           |  3   | r =   (x * y) - a. Saturate.                                 |
+| LMA\_AC\_O       |  2   | r +=  (x * y >> 31). Overflow.                               |
+| LMA\_O           |  3   | r =   (x * y >> 31) + a. Overflow.                           |
+| LMA\_AC\_MV\_O   |  3   | r +=  (x * y >> 31), a = upper r. Overflow.                  |
+| LNMA\_LMA\_O     |  3   | r0 = -(x * y >> 31) + a, r1 = (x * y >> 31) + a. Overflow.   |
+| LNMA\_O          |  3   | r =  -(x * y) + a. Overflow.                                 |
+| LMS\_O           |  3   | r =   (x * y) - a. Overflow.                                 |
+
+
+Full range instructions:
+|      Opcode      | Args |                     Behavior                       |
+| ---------------- | ---- | -------------------------------------------------- |
+| MA\_AC\_S        |  2   | r += (x * y). Saturate.                            |
+| MA\_S            |  3   | r = (x * y) + a. Saturate.                         |
+| MA\_C\_S         |  3   | r = (x * y) + a + carry-flag. Saturate.            |
+| MA\_AC\_MV\_S    |  3   | r += (x * y), a = r. Saturate.                     |
+| NMA\_MA\_S       |  3   | r0 = -(x0 * y0) + a, r1 = (x1 * y1) + a. Saturate. |
+| NMA\_S           |  3   | r = -(x * y) + a. Saturate.                        |
+| MS\_S            |  3   | r = (x * y) - a. Saturate.                         |
+| MA\_AC\_O        |  2   | r += (x * y). Overflow.                            |
+| MA\_O            |  3   | r = (x * y) + a. Overflow.                         |
+| MA\_C\_O         |  3   | r = (x * y) + a + carry-flag. Overflow.            |
+| MA\_AC\_MV\_O    |  3   | r += (x * y), a = r. Overflow.                     |
+| NMA\_MA\_O       |  3   | r0 = -(x0 * y0) + a, r1 = (x1 * y1) + a. Overflow. |
+| NMA\_O           |  3   | r = -(x * y) + a. Overflow.                        |
+| MS\_O            |  3   | r = (x * y) - a. Overflow.                         |
 
 
 ### Integer Interpolate:
-| INTERP           |  3   |                                                  |
-| INTERP\_T1       |  3   |                                                  |
+These are the same as the emu10k1's `INTERP` instruction. Copied below from the as10k1 manual:
+
+```
+Used for linear interpolating between two points. "X" should be positive and represents a
+fractional value between 0 and 1. "x" is the fraction of the interval between A and Y where
+the desired value is located.
+
+The INTERP instruction is not only useful for linear interpolation, it can also be used for
+rescaling values. In such a case, the input must be bounded by [0,1], the output will be
+bounded by [A,Y]. Thus the intruction can be though of as:
+
+interp    R,MIN,X,MAX
+
+where MIN and MAX are the bounds of your output.
+```
+
+
+|      Opcode      | Args |                     Behavior                                                   |
+| ---------------- | ---- | ------------------------------------------------------------------------------ |
+| INTERP           |  3   | r = (x * (y - a) >> 31) + a. Saturate, I believe.                              |
+| INTERP\_T1       |  3   | r = (x * (y - a) >> 31) + a. I think this may be overflow, but cannot confirm. |
 
 ### Integer Triple Add:
-| U\_ADD3\_S       |  3   |                                                  |
+This is the same as the emu10k1's `ACC3` instruction. It adds all three operands together,
+and stores the result in the upper 32-bits of the accumulator.
 
+
+|      Opcode      | Args |                     Behavior                     |
+| ---------------- | ---- | ------------------------------------------------ |
+| U\_ADD3\_S       |  3   | r = a + x + y. Saturate.                         |
 
 
 ## Floating Point Math Instructions
