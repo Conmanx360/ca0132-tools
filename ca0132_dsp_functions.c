@@ -2822,7 +2822,7 @@ static const dsp_op_info asm_ops[] = {
 	                 OP_LAYOUT_R_X_Y_2,
 	                 OP_LAYOUT_R_X_Y_4 },
 	},
-	{ .op_str = "F_SUBADD",
+	{ .op_str = "F_MA_NMA",
 	  .op = 0x0083,
 	  .has_op_layout = 1,
 	  .layout_id = { OP_LAYOUT_R_X_Y_A_1,
