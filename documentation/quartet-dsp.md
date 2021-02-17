@@ -43,9 +43,19 @@ all audio streams are routed through it and it's DMA controllers.
     - [Returns](#returns)
     - [Interrupts](#interrupts)
     - [Loops](#loops)
-  - [Math Instructions](#math-instructions)
-    - [R = X Y Math](#r-=-x-y-math)
-    - [R = X Y A Math](#r-=-x-y-a-math)
+  - [Integer Math Instructions](#integer-math-instructions)
+    - [Add/Subtract/Multiply](#r-=-x-y-math)
+    - [Multiply](#r-=-x-y-math)
+    - [Fused Multiply Add/Subtract](#r-=-x-y-a-math)
+    - [Interpolate](#r-=-x-y-a-math)
+    - [Triple Add](#r-=-x-y-a-math)
+  - [Floating Point Math Instructions](#floating-point-math-instructions)
+    - [Add/Subtract/Multiply](#r-=-x-y-math)
+    - [Fused Multiply Add/Subtract](#r-=-x-y-a-math)
+    - [Sine/Cosine/ArcTangent](#)
+    - [Reciprocal](#)
+    - [Reciprocal Division](#)
+    - [DFT Calculation](#)
   - [Value Manipulation Instructions](#value-manipulation-instructions)
     - [Absolute Value](#absolute-value)
     - [Negate Value](#negate-value)
@@ -857,35 +867,177 @@ There are currently 3 known interrupt instructions that effect control flow:
 ### Loops
 
 
-## Math Instructions
+## Integer Math Instructions
+Integers have many different variations of the basic add, subtract and multiply
+operations due to the accumulator being 70-bits combined. I will attempt to
+describe each below:
+
+### Integer Add/Subtract:
+Add and subtract instructions come in two different destination variations,
+upper and lower. Instructions that store their result in the upper portion
+of the accumulator are defined by the `U_` prefix. They also have two separate
+result bounding variations, saturation and overflow, defined by the `_S` and
+`_O` suffixes, respectively.
 
 
-### R = X Y Math
-ADD:
+Upper instructions store their results into the `_T1` portion of the accumulator
+register, which means we have a 40-bit result. Non upper instructions use the
+entire combined 70 bits of the accumulator.
+
+
+Saturation instructions bound the result to 63-bits for full range instructions,
+and 31 for upper. Saturation instructions will not overflow once they reach the
+highest possible value for the given sign, instead they 'stick' to the highest value.
+For unsigned integers, this is `0x7fffffffffffffff`, and for signed integers, it's
+`0x8000000000000000`.
+
+
+Overflow instructions will use the entire 70 bits of the accumulator, and wrap around
+upon overflow.
+
+
+`ADDC` is add with carry, which adds an extra 1 if the carry flag was set, and `SUBB` is
+subtract with borrow, which subtracts an extra 1 if the borrow flag was set.
+
+
+Below are all the possible assembly ops:
+|      Opcode      |                     Behavior                     |
+| ---------------- | ------------------------------------------------ |
+| U\_ADD\_S        | Upper accumulator add, saturate.                 |
+| U\_SUB\_S        | Upper accumulator subtract, saturate.            |
+| U\_ADD\_O        | Upper accumulator add, overflow.                 |
+| U\_ADDC\_O       | Upper accumulator add carry, overflow.           |
+| U\_SUB\_O        | Upper accumulator sub, overflow.                 |
+| U\_SUBB\_O       | Upper accumulator sub with borrow, overflow.     |
+| U\_ADDSUB\_O     | Upper acc add on dp0, sub on dp1. Overflow.      |
+| U\_SUBADD\_O     | Upper acc sub on dp0, add on dp1. Overflow.      |
+| ADD\_S           | Full accumulator add, saturate.                  |
+| ADDC\_S          | Full accumulator add carry, saturate.            |
+| SUB\_S           | Full accumulator subtract, saturate.             |
+| SUBB\_S          | Full accumulator sub with borrow, saturate.      |
+| ADD\_O           | Full accumulator add, overflow.                  |
+| ADDC\_O          | Full accumulator add carry, overflow.            |
+| SUB\_O           | Full accumulator subtract, overflow.             |
+| SUBB\_O          | Full accumulator sub with borrow, overflow.      |
+
+### Integer Multiply:
+Like add and subtract, multiply instructions come in two different destination
+variations. However, multiply behaves differently. For 'lower' multiply (defined by the
+`L` prefix), the result is shifted to the right by 31 bits. This matches the behavior
+of the emu10k1 DSP, which used these as 'fractional' multiplies.
+
+
+Multiply has unsigned variations, which don't sign extend the operand. These are defined
+by the `_US` suffix. Normally, when a value such as `0x80000000` is multiplied, since the
+MSB is set, the rest of the upper 40-bits are assumed to be set. In unsigned instructions,
+this is not the case. The regular instruction treats the result as signed, and extends
+the sign if bit 63 is set. The `_T1` instruction treats the result as unsigned. These might
+be considered saturation and overflow, although they don't exactly fit that behavior fully.
+
+
+Like before, there are saturate and overflow variations, which behave the same as the addition and
+subtraction instructions.
+
+
+Below are all the possible assembly ops:
+|      Opcode      |                     Behavior                                           |
+| ---------------- | ---------------------------------------------------------------------- |
+| LMUL\_S          | r =  (x * y >> 31). Saturate.                                          |
+| LMUL\_O          | r =  (x * y >> 31). Overflow.                                          |
+| LNMUL\_O         | r = -(x * y >> 31). Result is negated. Overflow.                       |
+| LMUL\_US\_O      | r =  (x * y >> 31). Overflow. Unsigned operands                        |
+| LMUL\_US\_O\_T1  | r =  (x * y >> 31). Overflow. Unsigned operands + result.              |
+| MUL\_O           | r =  (x * y >> 32). Overflow.                                          |
+| NMUL\_O          | r = -(x * y >> 32). Result is negated. Overflow.                       |
+| MUL\_US\_O       | r =  (x * y >> 32). Overflow. Unsigned operands.                       |
+| MUL\_US\_O\_T1   | r =  (x * y >> 32). Overflow. Unsigned operands + result.              |
+
+
+### Integer Fused Multiply Add and Subtract:
+Like the basic `r = x y` math, there are many variations of `r = x y a` integer instructions.
+I will describe them below.
+
+There are basically add, add accumulate, add accumulate move, negate mul, subtract,
+upper/lower,
+
+Like regular multiply, these instructions are split between the 'lower' multiply behavior and
+regular multiply. We also have saturate and overflow like before.
+
+The main different with these instructions are the `_AC` and `_MV` suffixes.
+
+- `_AC` means accumulate, so the format is `r += (x y) a` rather than `r = (x y) a`.
+- `_MV` means move, in these instructions take the format of `r += (x * y); a = r;`.
+
+The plain accumulate instructions only take two operands, X and Y, so they're technically not
+`r = x y a` instructions, although they fit in more here than in the original catagory.
+
+Accumulate move instructions will move the lower part of the accumulator on `L` instructions, and
+the upper portion on regular. If the result is
+
+|      Opcode      | Args |                     Behavior                     |
+| ---------------- | ---- | ------------------------------------------------ |
+| LMA\_AC\_S       |  2   |                                                  |
+| LMA\_S           |  3   |                                                  |
+| LMA\_AC\_MV\_S   |  3   |                                                  |
+| LNMA\_LMA\_S     |  3   |                                                  |
+| LNMA\_S          |  3   |                                                  |
+| LMS\_AC\_MV\_S   |  3   |                                                  |
+| LMS\_S           |  3   |                                                  |
+| LMA\_O           |  3   |                                                  |
+| LMA\_AC\_O       |  2   |                                                  |
+| LMA\_AC\_MV\_O   |  3   |                                                  |
+| LNMA\_LMA\_O     |  3   |                                                  |
+| LNMA\_O          |  3   |                                                  |
+| LMS\_O           |  3   |                                                  |
+| MA\_AC\_S        |  2   |                                                  |
+| MA\_AC\_O        |  2   |                                                  |
+| MA\_S            |  3   |                                                  |
+| MA\_C\_S         |  3   |                                                  |
+| MA\_AC\_MV\_S    |  3   |                                                  |
+| NMA\_MA\_S       |  3   |                                                  |
+| NMA\_S           |  3   |                                                  |
+| MS\_S            |  3   |                                                  |
+| MA\_O            |  3   |                                                  |
+| MA\_C\_O         |  3   |                                                  |
+| MA\_AC\_MV\_O    |  3   |                                                  |
+| NMA\_MA\_O       |  3   |                                                  |
+| NMA\_O           |  3   |                                                  |
+| MS\_O            |  3   |                                                  |
+
+
+### Integer Interpolate:
+| INTERP           |  3   |                                                  |
+| INTERP\_T1       |  3   |                                                  |
+
+### Integer Triple Add:
+| U\_ADD3\_S       |  3   |                                                  |
+
+
+
+## Floating Point Math Instructions
+
+
+### Floating Point Add/Subtract/Multiply:
 Basic addition, has format of `r = x + y`. Has `_T1` variant with unknown difference.
 
-- `I_ADD R00, R02, R01;`, r00 = r02 + r01.
-- `F_ADD R00, R02, R01;`, r00 = r02 + r01, but floating point.
+- `F_ADD R00, R02, R01;`, r00 = r02 + r01..
 
 
 SUB:
 Basic subtraction, has format of `r = x - y`. Has `_T1` variant with unknown difference.
 
-- `I_SUB R00, R02, R01;`, r00 = r02 - r01.
-- `F_SUB R00, R02, R01;`, r00 = r02 - r01, but floating point.
+- `F_SUB R00, R02, R01;`, r00 = r02 - r01..
 
 
 MUL:
 Basic multiplication, has format of `r = x * y`. Has `_T1` and `_T2` variants, with unknown differences.
 
-- `I_MUL R00, R02, R01;`, r00 = r02 * r01.
-- `F_MUL R00, R02, R01;`, r00 = r02 * r01, but floating point.
+- `F_MUL R00, R02, R01;`, r00 = r02 * r01..
 
 NMUL:
 Basic multiplication, except product is negated. Has format of `r = -(x * y)`.
 
-- `I_NMUL R00, R02, R01;`, r00 = -(r02 * r01).
-- `F_NMUL R00, R02, R01;`, r00 = -(r02 * r01), but floating point.
+- `F_NMUL R00, R02, R01;`, r00 = -(r02 * r01)..
 
 FMAC:
 Fused multiply and add to the accumulator, except in this case it's the destination register, so
@@ -894,38 +1046,43 @@ Fused multiply and add to the accumulator, except in this case it's the destinat
 - `F_FMAC R04, R02, R01;`, r04 += r02 * r01.
 
 
-
-### R = X Y A Math
-
+### Floating Point Fused Multiply Add and Subtract:
 FMA instructions all have the format of `r = (x * y) + a`, with different operator variations
 between the operands. Register ranges are [here.](#r--x-y-a-register-ranges)
 
 FMA:
-Basic fused multiply add, `r = (x * y) + a`. `I_FMA` for integer, and `F_FMA` for
-floating point. There is currently one known opcode that does FMA a little bit differently,
-and I've marked this `_T2`. Example instruction:
+Basic fused multiply add, `r = (x * y) + a`. `F_FMA` for floating point.
+Example instruction:
 
 
-- `I_FMA R04, R12, R02, R03;`, r04 = (r12 * r02) + r03.
-- `F_FMA R04, R12, R02, R03;`, r04 = (r12 * r02) + r03, but floating point.
+- `F_FMA R04, R12, R02, R03;`, r04 = (r12 * r02) + r03..
 
 
 FMS:
 Same basic format of FMA, except this time it's fused multiply and subtract, `r = (x * y) - a`.
-Has a `_T1` variant, unknown difference.
 
 
-- `I_FMS R04, R12, R02, R03;`, r04 = (r12 * r02) - r03.
-- `F_FMS R04, R12, R02, R03;`, r04 = (r12 * r02) - r03, but floating point.
+- `F_FMS R04, R12, R02, R03;`, r04 = (r12 * r02) - r03..
 
 
 NFMA:
 Basic FMA, except the product of the multiplication is negated, `r = -(x * y) + a`.
-Has a `_T1` variant, unknown difference.
 
 
-- `I_NFMA R04, R12, R02, R03;`, r04 = -(r12 * r02) + r03.
-- `F_NFMA R04, R12, R02, R03;`, r04 = -(r12 * r02) + r03, but floating point.
+- `F_NFMA R04, R12, R02, R03;`, r04 = -(r12 * r02) + r03..
+
+
+### Sine/Cosine/ArcTangent:
+
+
+### Reciprocal:
+
+
+### Reciprocal Division:
+
+
+### DFT Calculation:
+
 
 
 ## Value Manipulation Instructions
@@ -972,10 +1129,6 @@ point value in x multiplied by 2 to the power of y.
 
 ## Floating Point Specific Instructions
 ### Value Extract
-### Sine/Cosine/ArcTangent
-### Reciprocal
-### Reciprocal Division
-### DFT Calculation
 
 
 ## Parallel Instructions:
