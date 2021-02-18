@@ -52,7 +52,7 @@ all audio streams are routed through it and it's DMA controllers.
   - [Floating Point Math Instructions](#floating-point-math-instructions)
     - [Add/Subtract/Multiply](#floating-point-addsubtractmultiply)
     - [Fused Multiply Add/Subtract](#floating-point-fused-multiply-add-and-subtract)
-    - [Sine/Cosine/ArcTangent](#sinecosinearctangent)
+    - [Sine/Cosine/Arctangent](#sinecosinearctangent)
     - [Reciprocal](#reciprocal)
     - [Reciprocal Division](#reciprocal-division)
     - [DFT Calculation](#dft-calculation)
@@ -1067,73 +1067,187 @@ and stores the result in the upper 32-bits of the accumulator.
 
 
 ## Floating Point Math Instructions
-
+Floating point math instructions are much simpler than their integer counterparts.
+Since only 32-bit floats are used, instructions only use the upper 32-bits of the
+accumulator, which means we don't need separate instructions for different bit
+lengths.
 
 ### Floating Point Add/Subtract/Multiply:
-Basic addition, has format of `r = x + y`. Has `_T1` variant with unknown difference.
+Floating point add, subtract and multiply instructions are pretty basic. All results
+are stored in the upper 32-bits of the accumulator.
 
-- `F_ADD R00, R02, R01;`, r00 = r02 + r01..
-
-
-SUB:
-Basic subtraction, has format of `r = x - y`. Has `_T1` variant with unknown difference.
-
-- `F_SUB R00, R02, R01;`, r00 = r02 - r01..
-
-
-MUL:
-Basic multiplication, has format of `r = x * y`. Has `_T1` and `_T2` variants, with unknown differences.
-
-- `F_MUL R00, R02, R01;`, r00 = r02 * r01..
-
-NMUL:
-Basic multiplication, except product is negated. Has format of `r = -(x * y)`.
-
-- `F_NMUL R00, R02, R01;`, r00 = -(r02 * r01)..
-
-FMAC:
-Fused multiply and add to the accumulator, except in this case it's the destination register, so
-`r += x * y`. Currently only a floating point variant is known.
-
-- `F_FMAC R04, R02, R01;`, r04 += r02 * r01.
-
+Below are the floating point add, subtract and multiply ops:
+|      Opcode      |                      Behavior                    |
+| ---------------- | ------------------------------------------------ |
+| F\_ADD           | r  =  x + y.                                     |
+| F\_SUB           | r  =  x - y.                                     |
+| F\_SUBADD        | r0 =  x - y, r1 = x + y.                         |
+| F\_ADDSUB        | r0 =  x + y, r1 = x - y.                         |
+| F\_MUL           | r  =  x * y.                                     |
+| F\_NMUL          | r  = -(x * y).                                   |
 
 ### Floating Point Fused Multiply Add and Subtract:
-FMA instructions all have the format of `r = (x * y) + a`, with different operator variations
-between the operands. Register ranges are [here.](#r--x-y-a-register-ranges)
-
-FMA:
-Basic fused multiply add, `r = (x * y) + a`. `F_FMA` for floating point.
-Example instruction:
+Floating point fused multiply add and subtract instructions are once again similar
+to their integer counterparts, except much much basic. All results are stored in the
+upper 32-bits of the accumulator.
 
 
-- `F_FMA R04, R12, R02, R03;`, r04 = (r12 * r02) + r03..
+Below are all the floating point fused multiply add and subtract ops:
+|      Opcode       | Args |                      Behavior                        |
+| ----------------- | ---- | ---------------------------------------------------- |
+| F\_MA\_AC         |  2   | r +=   (x * y).                                      |
+| F\_MA             |  3   | r  =   (x * y) + a.                                  |
+| F\_MA\_AC\_MV     |  3   | r +=   (x * y), a = r.                               |
+| F\_MA\_NMA        |  3   | r0 =   (x * y) + a, r1 = -(x * y) + a.               |
+| F\_NMA\_MA        |  3   | r0 =  -(x * y) + a, r1 =  (x * y) + a.               |
+| F\_NMA            |  3   | r  =  -(x * y) + a.                                  |
+| F\_MA\_MS\_AC\_MV |  3   | r0 +=  (x0 * y0), a0 = r0. r1 -= (x1 * y1), a1 = r1. |
+| F\_MS             |  3   | r  =   (x * y) - a.                                  |
 
 
-FMS:
-Same basic format of FMA, except this time it's fused multiply and subtract, `r = (x * y) - a`.
+
+### Sine/Cosine/Arctangent:
+The DSP has instructions for calculating sine, cosine, and arctangent. These instructions
+take their angle values in radians.
 
 
-- `F_FMS R04, R12, R02, R03;`, r04 = (r12 * r02) - r03..
+For sine and cosine, the calculations are combined into one `F_SINCOS` instruction that
+stores the result of sine in the destination of data path 1, and the absolute value of
+the angle in the destination of data path 2. Data path 2 has it's source ignored. R12
+is always used to store the result of cosine, regardless of which operands are set.
 
 
-NFMA:
-Basic FMA, except the product of the multiplication is negated, `r = -(x * y) + a`.
+For arctangent, the `F_ARCTAN` instruction only computes the arctangent of the angle.
+If data path 2 is in use, the destination is just cleared, making it useless.
 
+These instructions use the move instruction layout, example:
+```
+F_SINCOS R04, CR_F_NEG_1 : R13, CR_0x00000000;
+F_ARCTAN R04, CR_F_NEG_1;
+```
 
-- `F_NFMA R04, R12, R02, R03;`, r04 = -(r12 * r02) + r03..
+Below are the instructions:
+|      Opcode      |                     Behavior                         |
+| ---------------- | ---------------------------------------------------- |
+| F\_SINCOS        | dst0 = sin(src0), dst1 = abs(src0), r12 = cos(src0). |
+| F\_ARCTAN        | dst0 = atan(src0), dst1 = 0.                         |
 
-
-### Sine/Cosine/ArcTangent:
 
 
 ### Reciprocal:
+The DSP has two floating point reciprocal instructions, one just calculates the
+reciprocal of the given value, and the other calculates the reciprocal of the
+square root of the given value. Both can only operate on a single data path.
+
+
+Below are the instructions:
+|      Opcode      |                     Behavior                         |
+| ---------------- | ---------------------------------------------------- |
+| F\_RCP           | dst0 = 1 / src0.                                     |
+| F\_RCP\_SQRT     | dst0 = 1 / sqrt(src0).                               |
 
 
 ### Reciprocal Division:
+As far as I can tell, the DSP has no dedicated division instructions. However, this
+instruction seems to be a way of using a floating point reciprocal to do division.
+
+
+This is accomplished by taking three values, the numerator, the denominator,
+and the reciprocal of the denominator. This instruction basically does this:
+
+```
+r00 = 2.0f.
+r01 = 1.0f / 7.0f, the reciprocal of the denominator.
+r12 = 7.0f, the denominator.
+
+So, essentially we're calculating 2.0f / 7.0f.
+
+F_RCP_DIV R00, R00, R01 : R01, R12, R01;
+
+After this instruction:
+r00 = r00 * r01.
+r01 = r12 * r01.
+
+Now, here's the odd part:
+r12 is always set in this instruction, regardless of what destination register is set.
+To get the value r12 is set with, we take the result of data path 2, finding the first
+set bit starting from the least significant bit, unsetting that bit, then setting all bits
+above it. We also lower the floating point exponent by 1, making it 2 ^ -1 instead of 2 ^ 0.
+
+With these values, the first result is would be:
+
+r01 = 0x3f804000; float 1.001953.
+
+The first set bit is bit 14, which if we unset it, and set all the bits above it, we get
+0x3fff8000, and if we subtract one from the exponent, we get 0x3f7f8000.
+
+Now, if we repeat the same instruction:
+
+F_RCP_DIV R00, R00, R01 : R01, R12, R01;
+
+We end up with r01 = 0x3f800020. The first set bit is bit 5, which if we unset it and set
+all bits above it, we get 0x3fffffc0. Subtracting one from the exponent, we get 0x3f7fffc0.
+
+After about three iterations of this, we end up with 0x3f800000 (float 1.0f) and 0x3f7fffff (0.99999999).
+
+Somebody with more understanding of floating point may be able to give a better explanation of why this
+is done, but it seems to be slowly rounding towards a more correct answer. Each iteration gives a much
+cleaner result which is stored in data path 0.
+
+
+```
+
+|      Opcode      | Args |                     Behavior                            |
+| ---------------- | ---- | ------------------------------------------------------- |
+| F\_RCP\_DIV      |  2   | r0 = x0 * y0, r1 = x1 * y1, r12 = behavior shown above. |
 
 
 ### DFT Calculation:
+These instructions implement common math used in discrete fourier transform operations. Each
+instruction requires both data paths to be in use. I am not an expert in this, so my explanation
+may leave a bit to be desired, but I'll try my best:
+
+`F_DFT_TWDL` implements the 'twiddle' calculation of a DFT, where we take four values:
+- `in_r`, or input real. The real number portion of the input.
+- `in_i`, or input imaginary, the imaginary portion of the input.
+- `tw_r`, or twiddle real. The real portion of the twiddle factor.
+- `tw_i`, or twiddle imaginary. The imaginary portion of the twiddle factor.
+
+The instruction behavior is shown below:
+```
+F_DFT_TWDL R04, R00, R01 : R12, R02, R03;
+
+would have:
+R04 = (R00 * R02) - (R01 * R03), which is the equivalent of (in_r * tw_r) - (in_i * tw_i);
+R12 = (R00 * R03) + (R01 * R02), which is the equivalent of (in_r * tw_i) + (in_i * tw_r);
+
+Where R04 contains the real result, and R12 contains the imaginary result.
+```
+
+`F_DFT_BFLY` implements the butterfly calculation of a DFT, where we take 4 inputs:
+- `in_r` from the previous twiddle calculation.
+- `in_i` from the previous twiddle calculation.
+- `res_r` which is the real result from the previous twiddle calculation.
+- `res_i` which is the imaginary result from the previous twiddle calculation.
+
+
+We also have four outputs, two pairs of real and imaginary results. The instruction
+behavior is shown below:
+```
+F_DFT_BFLY R04, R00, R01, R05 :
+           R12, R02, R03, R13;
+
+would have:
+R04 = R00 + R02, which is the equivalent of in_r + res_r.
+R12 = R01 + R03, which is the equivalent of in_i + res_i.
+R05 = R00 - R02, which is the equivalent of in_r - res_r.
+R13 = R01 - R03, which is the equivalent of in_i - res_i.
+```
+
+|      Opcode      | Args |                     Behavior                     |
+| ---------------- | ---- | ------------------------------------------------ |
+| F\_DFT\_TWDL     |  2   | Does DFT Twiddle, described above.               |
+| F\_DFT\_BFLY     |  3   | Does DFT Butterfly, described above.             |
 
 
 
