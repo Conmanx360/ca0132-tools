@@ -32,7 +32,7 @@ all audio streams are routed through it and it's DMA controllers.
     - [Register-Stack Move](#register-stack-move)
   - [Bit Manipulation Instructions](#bit-manipulation-instructions)
     - [Bitwise Logic Operators](#bitwise-logic-operators)
-    - [Bit Shifts](#bit-shifts)
+    - [Bit Shifts](#bitshifts)
     - [Bit Counting](#bit-counting)
     - [Single Bit Modify](#single-bit-modify)
     - [Multi Bit Modify](#multi-bit-modify)
@@ -60,9 +60,8 @@ all audio streams are routed through it and it's DMA controllers.
     - [Absolute Value](#absolute-value)
     - [Negate Value](#negate-value)
     - [Type Conversion](#type-conversion)
-  - [Floating Point Specific Instructions](#floating-point-specific-instructions)
-    - [Value Extract](#)
-    - [Placeholder](#)
+    - [Value Comparison](#value-comparsion)
+    - [Floating Point Value Extract](#floating-point-value-extract)
 
 
 ## Quartet DSP overview:
@@ -1292,9 +1291,49 @@ Takes a float value in x, an integer value in y, and creates an integer value in
 So, if the y value is 0, you get a straight float to int conversion. Otherwise, you get the floating
 point value in x multiplied by 2 to the power of y.
 
+### Value Comparsion
+The value comparison instructions for both integer and floating point are essentially a
+subtract instruction, except the result is discarded and only the `COND_REG` register is
+set. These can then be used for conditional checks.
 
-## Floating Point Specific Instructions
-### Value Extract
+#### Integer Comparison
+Integer value comparisons have a few different possible outcomes. Since conditional
+checks only apply to the conditional bits of data path 1, those are the only ones I'll be
+listing below:
+
+| Condition | `COND_REG` Result |
+| --------- | ----------------- |
+|  X ==  Y  | 0x68d (000 1101)  |
+|  X  >  Y  | 0x689 (000 1001)  |
+|  X  > -Y  | 0x688 (000 1000)  |
+|  X  <  Y  | 0x68a (000 1010)  |
+| -X  <  Y  | 0x68b (000 1011)  |
+
+The reason that some results of the same conditional have the first bit (the carry bit)
+set is because the ALU treats integer subtraction as addition, it essentially does `X + -(Y)`.
+This means that in certain circumstances, even though two conditions are the same, i.e
+`X < Y` and `-X < Y`, the results in the `COND_REG` can be different.
+
+
+#### Float Comparison
+Floating point value comparisons are much more basic. I will list them below:
+
+| Condition | `COND_REG` Result |
+| --------- | ----------------- |
+|  X ==  Y  | 0x204 (000 0100)  |
+|  X  >  Y  | 0x200 (000 0000)  |
+|  X  <  Y  | 0x202 (000 0010)  |
+
+Due to these being handled by the FPU and not having any twos complement trickery, they're pretty
+straight forward.
+
+
+## Floating Point Value Extract
+### Significand Extract
+
+### Exponent Extract
+
+### Exponent Add
 
 
 ## Parallel Instructions:
