@@ -293,11 +293,23 @@ address afterwards by the respective address modifier register.
 ### Status Registers.
 These are status related registers.
 
-COND\_REG is the register that contains flags which are set after a math operation,
-with 7 bits for each data path. I haven't done too much testing on these, but
-they seem to be compared against with a bitmask when using conditionals.
-Bits 0-7 represent data path 0's flags, and bits 8-14 represent data path 1's.
-Even if data path 1 is unused, it's flags will still be set.
+
+`COND_REG` is the status register for arithmetic operations, and contains seven bits
+for each data path. Bits 0-7 are data path 1, and bits 8-14 are data path 2. From
+my own personal testing, I believe the bits are laid out as:
+| Bit |        Definition         |
+| --- | ------------------------- |
+|  0  |  (C)arry/Borrow.          |
+|  1  |  (M)inus, or negative.    |
+|  2  |  (Z)ero.                  |
+|  3  |  (N)ormalized.            |
+|  4  |  (S)aturate, or overflow. |
+|  5  |  (X), unknown.            |
+|  6  |  (Y), unknown.            |
+
+Most of the bits are pretty self explanatory. The (M)inus flag means the result
+was negative, the (N)ormalized flag behaves the same as the emu10k1's normalize
+flag, and the (X)/(Y) flags are currently unknown.
 
 
 The STA\_S\_STACK\_DATA/STA\_S\STACK\_PTR registers are used to store the COND\_REG
