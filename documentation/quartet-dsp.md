@@ -39,6 +39,7 @@ all audio streams are routed through it and it's DMA controllers.
     - [Multi Bit Extract](#multi-bit-extract)
     - [Interrupt Bit Clear](#interrupt-bit-clear)
   - [Program Flow Instructions](#program-flow-instructions)
+    - [Conditional Codes](#conditional-codes)
     - [Address Set](#address-set)
     - [Returns](#returns)
     - [Interrupts](#interrupts)
@@ -60,7 +61,7 @@ all audio streams are routed through it and it's DMA controllers.
     - [Absolute Value](#absolute-value)
     - [Negate Value](#negate-value)
     - [Type Conversion](#type-conversion)
-    - [Value Comparison](#value-comparsion)
+    - [Value Comparison](#value-comparison)
     - [Floating Point Value Extract](#floating-point-value-extract)
 
 
@@ -836,14 +837,64 @@ and the lower bits signify which ones still need handled.
 
 ## Program Flow Instructions
 
+### Conditional Codes
+Conditional codes are an 8-bit literal value which is split into 3 parts, bits 0-3, bits 4-6,
+and bit 7. I will attempt to explain each sections behavior below.
+
+The lowest four bits seem to match the behavior in the following table:
+| Code |             Behavior               |
+| ---- | ---------------------------------- |
+| 0x00 | `if (C)`                           |
+| 0x01 | `if (Z)`                           |
+| 0x02 | `if (!M + (M * S))`                |
+| 0x03 | `if (!Z * (!M + (M * S)))`         |
+| 0x04 | `if (!Z * C)`                      |
+| 0x05 | `if (!Z * !C)`                     |
+| 0x06 | `if (X)`                           |
+| 0x07 | `if (Y)`                           |
+| 0x08 | `if (X + Y)`                       |
+| 0x09 | `if (M)`                           |
+| 0x0a | Unknown, seems to be always true.  |
+| 0x0b | Unknown, seems to be always true.  |
+| 0x0c | Unknown, seems to be always true.  |
+| 0x0d | Unknown, seems to be always true.  |
+| 0x0e | `if (0)`                           |
+| 0x0f | `if (1)`                           |
+
+
+The second set of bits, 4-6, seem to add an extra modifier on top
+of the conditional supplied from the first four bits, with the
+behavior described in the table below:
+| Code |       Behavior                     |
+| ---- | ---------------------------------- |
+| 0x00 | `if (cond0)`                       |
+| 0x10 | `if (N + (cond0))`                 |
+| 0x20 | `if (S + (cond0))`                 |
+| 0x30 | `if (N + S + (cond0))`             |
+| 0x40 | `if (cond0)`, extra info below.    |
+| 0x50 | `if (N * (cond0))`                 |
+| 0x60 | `if (S * (cond0))`                 |
+| 0x70 | `if (N * S * (cond0))`             |
+
+`cond0` represents the conditional from the first four bits, 0-3. The code `0x40`
+behaves the same as `0x00`, except that unlike `0x0e` always evaluating to false, `0x4e`
+always evaluates to true.
+
+
+The final bit, bit 7, just inverts the conditional from the above two parts. It is
+essentially `if (!(cond))`.
+
+
+Conditional flag letter definitions can be found [here.](#status-registers) Common
+conditional values obtained from the compare instructions can be found [here.](#value-comparison)
+
 
 ### Address Set
 There are currently four different instructions for setting the program counter,
 `CALL`, which is a function call,  `JMP`, which is a normal jump, and `JMPC/JMPC_T1` which
 are not yet understood. Each instruction also has an `S_` prefix variant, which takes a
 signed integer offset from the current PC value. Each instruction contains an 8-bit 
-conditional value, which is not yet fully understood. The value `#0x0f` seems to equate to 
-always true. Examples:
+conditional value, which is explained in the previous section. Examples:
 
 - Call literal address example: `CALL #0x0f, #0xdf00;`.
 - Call address register example: `CALL #0x0f, A_R0;`.
@@ -1303,7 +1354,7 @@ Takes a float value in x, an integer value in y, and creates an integer value in
 So, if the y value is 0, you get a straight float to int conversion. Otherwise, you get the floating
 point value in x multiplied by 2 to the power of y.
 
-### Value Comparsion
+### Value Comparison
 The value comparison instructions for both integer and floating point are essentially a
 subtract instruction, except the result is discarded and only the `COND_REG` register is
 set. These can then be used for conditional checks.
