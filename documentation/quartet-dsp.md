@@ -63,6 +63,9 @@ all audio streams are routed through it and it's DMA controllers.
     - [Type Conversion](#type-conversion)
     - [Value Comparison](#value-comparison)
     - [Floating Point Value Extract](#floating-point-value-extract)
+- [Interrupts](#interrupts)
+  - [Interrupt Configuration](#interrupt-configuration)
+  - [Interrupt Vectors](#interrupt-vectors)
 
 
 ## Quartet DSP overview:
@@ -1750,3 +1753,60 @@ of the first data path's value. So, R15 cannot get A\_R0, it can only get the ot
 | X1                | Operand X0 + 4-bit offset.    |
 | Y1                | Operand Y0 + 4-bit offset.    |
 | A1                | Operand Y0 + 4-bit offset.    |
+
+# Interrupts
+Each DSP has 26 unique interrupts. These are configured using the `INT_CONT` registers.
+I will attempt to explain their behaviors below.
+
+## Interrupt Configuration:
+There are 3 `INT_CONT`, or interrupt controller, registers. Each serves a different
+purpose.
+
+`INT_CONT_MASK` is a bitmask register, with the first 26-bits each representing an
+interrupt. If the bit is set, the associated interrupt is enabled, and vice versa
+for unset.
+
+`INT_CONT_PEND` is a bitmask register, similar to `INT_CONT_MASK`, except when
+a bit is set, the interrupt is set to be serviced and cleared once serviced.
+
+`INT_CONT_SERV` is still not fully understood, when no interrupt is being
+serviced, the value is set to `0x1f`. Depending on which interrupt is
+serviced, the value seems to change.
+
+
+## Interrupt Vectors:
+Each DSP has a separate set of interrupt vectors. The base address for a
+particular DSP can be obtained by `0x200 + (dsp_number * 0x80)`. Meaning,
+DSP0 starts at 0x200, DSP1 starts at 0x280, DSP2 starts at 0x300, and DSP3
+starts at 0x300. Below I will define my current understanding of what each
+interrupt vector belongs to.
+
+
+| Address Offset |       Interrupt Usage         |
+| -------------- | ----------------------------- |
+|   + 0x00       |  Unknown.                     |
+|   + 0x04       |  Unknown.                     |
+|   + 0x08       |  Unknown.                     |
+|   + 0x0c       |  Unknown.                     |
+|   + 0x10       |  Unknown.                     |
+|   + 0x14       |  Unknown.                     |
+|   + 0x18       |  Timer interrupt.             |
+|   + 0x1c       |  Unknown.                     |
+|   + 0x20       |  Unknown.                     |
+|   + 0x24       |  Unknown.                     |
+|   + 0x28       |  DSP DMA Controller 0.        |
+|   + 0x2c       |  DSP DMA Controller 1.        |
+|   + 0x30       |  DSP DMA Controller 2.        |
+|   + 0x34       |  DSP DMA Controller 3.        |
+|   + 0x38       |  DSP DMA Controller 4.        |
+|   + 0x3c       |  DSP DMA Controller 5.        |
+|   + 0x40       |  DSP DMA Controller 6.        |
+|   + 0x44       |  DSP DMA Controller 7.        |
+|   + 0x48       |  Unknown.                     |
+|   + 0x4c       |  DSP DMA related.             |
+|   + 0x50       |  DSP DMA related.             |
+|   + 0x54       |  DSP DMA related.             |
+|   + 0x58       |  DSP DMA Controller 8.        |
+|   + 0x5c       |  DSP DMA Controller 9.        |
+|   + 0x60       |  DSP DMA Controller 10.       |
+|   + 0x64       |  DSP DMA Controller 11.       |
