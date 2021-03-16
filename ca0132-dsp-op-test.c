@@ -71,30 +71,30 @@ static const char *reg_dump_entry_asm[] = {
 	/* Disable interrupts so we don't mess up our routine. */
 	"INT_DISABLE;\n",
 	/* A_R7 + 1 (-6) */
-	"MOV_P @A_R7_X_INC, R10 :\n\
-	 MOV_P @A_R7_Y_INC, R11 /\n\
+	"MOVX_P @A_R7_X_INC, R10 :\n\
+	 MOVX_P @A_R7_Y_INC, R11 /\n\
 	 NOP;",
 	/* A_R7 + 1 (-5) */
-	"MOV_P @A_R7_X_INC, R08 :\n\
-	 MOV_P @A_R7_Y_INC, R09 /\n\
+	"MOVX_P @A_R7_X_INC, R08 :\n\
+	 MOVX_P @A_R7_Y_INC, R09 /\n\
 	 NOP;",
 	/* A_R7 + 1 (-4) */
-	"MOV_P @A_R7_X_INC, R00 :\n\
-	 MOV_P @A_R7_Y_INC, R01 /\n\
+	"MOVX_P @A_R7_X_INC, R00 :\n\
+	 MOVX_P @A_R7_Y_INC, R01 /\n\
 	 NOP;",
 	/* A_R7 + 1 (-3) */
-	"MOV_P @A_R7_X += A_MD7, R02 :\n\
-         MOV_P @A_R7_Y += A_MD7, R03 /\n\
+	"MOVX_P @A_R7_X += A_MD7, R02 :\n\
+         MOVX_P @A_R7_Y += A_MD7, R03 /\n\
          MOV R00, A_R6 :\n\
          MOV R01, A_R6_MDFR;",
 	/* A_R7 + 1 (-2) */
-	"MOV_P @A_R7_X += A_MD7, R00 :\n\
-         MOV_P @A_R7_Y += A_MD7, R01 /\n\
+	"MOVX_P @A_R7_X += A_MD7, R00 :\n\
+         MOVX_P @A_R7_Y += A_MD7, R01 /\n\
          MOV R02, A_R6_BASE :\n\
          MOV R03, A_R6_LENG;",
 	/* A_R7 + 1 (-1) */
-	"MOV_P @A_R7_X_INC, R02 :\n\
-	 MOV_P @A_R7_Y_INC, R03 /\n\
+	"MOVX_P @A_R7_X_INC, R02 :\n\
+	 MOVX_P @A_R7_Y_INC, R03 /\n\
 	 NOP;",
 	"MOV A_R6_BASE, CR_0x00000000 :\n\
          MOV A_R6_LENG, CR_0x00000000;",
@@ -123,24 +123,24 @@ static const char *reg_dump_post_op_addr_reg_set[] = {
  * taken.
  */
 static const char *reg_dump_func_start_asm[] = {
-	"MOV_P @A_R6_X_INC, R00 :\n\
-	 MOV_P @A_R6_Y_INC, R08 /\n\
+	"MOVX_P @A_R6_X_INC, R00 :\n\
+	 MOVX_P @A_R6_Y_INC, R08 /\n\
 	 NOP;",
-	"MOV_P @A_R6_X_INC, R01 :\n\
-	 MOV_P @A_R6_Y_INC, R09 /\n\
+	"MOVX_P @A_R6_X_INC, R01 :\n\
+	 MOVX_P @A_R6_Y_INC, R09 /\n\
 	 NOP;",
-	"MOV_P @A_R6_X_INC, R02 :\n\
-	 MOV_P @A_R6_Y_INC, R10 /\n\
+	"MOVX_P @A_R6_X_INC, R02 :\n\
+	 MOVX_P @A_R6_Y_INC, R10 /\n\
 	 NOP;",
-	"MOV_P @A_R6_X_INC, R03 :\n\
-	 MOV_P @A_R6_Y_INC, R11 /\n\
+	"MOVX_P @A_R6_X_INC, R03 :\n\
+	 MOVX_P @A_R6_Y_INC, R11 /\n\
 	 NOP;",
-	"MOV_P @A_R6_X_INC, R04 :\n\
-	 MOV_P @A_R6_Y_INC, R12 /\n\
+	"MOVX_P @A_R6_X_INC, R04 :\n\
+	 MOVX_P @A_R6_Y_INC, R12 /\n\
 	 MOV_T2 R09, R12 :\n\
 	 MOV_T2 R01, R04;",
-	"MOV_P @A_R6_X_INC, R05 :\n\
-	 MOV_P @A_R6_Y_INC, R13 /\n\
+	"MOVX_P @A_R6_X_INC, R05 :\n\
+	 MOVX_P @A_R6_Y_INC, R13 /\n\
 	 MOV_T2 R11, R13 :\n\
 	 MOV_T2 R03, R05;",
 	"MOV_T1_P @A_R6_X_INC, R04 :\n\
@@ -149,91 +149,91 @@ static const char *reg_dump_func_start_asm[] = {
 	"MOV_T1_P @A_R6_X_INC, R05 :\n\
 	 MOV_T1_P @A_R6_Y_INC, R13 /\n\
 	 NOP;",
-	"MOV_P @A_R6_X_INC, R01 :\n\
-	 MOV_P @A_R6_Y_INC, R09 /\n\
+	"MOVX_P @A_R6_X_INC, R01 :\n\
+	 MOVX_P @A_R6_Y_INC, R09 /\n\
 	 NOP;",
-	"MOV_P @A_R6_X_INC, R03 :\n\
-	 MOV_P @A_R6_Y_INC, R11 /\n\
+	"MOVX_P @A_R6_X_INC, R03 :\n\
+	 MOVX_P @A_R6_Y_INC, R11 /\n\
 	 NOP;",
-	"MOV_P @A_R6_X_INC, R06 :\n\
-	 MOV_P @A_R6_Y_INC, R14 /\n\
+	"MOVX_P @A_R6_X_INC, R06 :\n\
+	 MOVX_P @A_R6_Y_INC, R14 /\n\
 	 NOP;",
-	"MOV_P @A_R6_X_INC, R07 :\n\
-	 MOV_P @A_R6_Y_INC, R15 /\n\
+	"MOVX_P @A_R6_X_INC, R07 :\n\
+	 MOVX_P @A_R6_Y_INC, R15 /\n\
 	 NOP;",
 	/* Begin address register and address register mdfr dump */
 	"MOV R00, A_R0 :\n\
          MOV R08, A_R0_MDFR;",
-	"MOV_P @A_R6_X += A_MD6, R00 :\n\
-         MOV_P @A_R6_Y += A_MD6, R08 /\n\
+	"MOVX_P @A_R6_X += A_MD6, R00 :\n\
+         MOVX_P @A_R6_Y += A_MD6, R08 /\n\
          MOV R00, A_R1 :\n\
          MOV R08, A_R1_MDFR;",
-	"MOV_P @A_R6_X += A_MD6, R00 :\n\
-         MOV_P @A_R6_Y += A_MD6, R08 /\n\
+	"MOVX_P @A_R6_X += A_MD6, R00 :\n\
+         MOVX_P @A_R6_Y += A_MD6, R08 /\n\
          MOV R00, A_R2 :\n\
          MOV R08, A_R2_MDFR;",
-	"MOV_P @A_R6_X += A_MD6, R00 :\n\
-         MOV_P @A_R6_Y += A_MD6, R08 /\n\
+	"MOVX_P @A_R6_X += A_MD6, R00 :\n\
+         MOVX_P @A_R6_Y += A_MD6, R08 /\n\
          MOV R00, A_R3 :\n\
          MOV R08, A_R3_MDFR;",
-	"MOV_P @A_R6_X += A_MD6, R00 :\n\
-         MOV_P @A_R6_Y += A_MD6, R08 /\n\
+	"MOVX_P @A_R6_X += A_MD6, R00 :\n\
+         MOVX_P @A_R6_Y += A_MD6, R08 /\n\
          MOV R00, A_R4 :\n\
          MOV R08, A_R4_MDFR;",
-	"MOV_P @A_R6_X += A_MD6, R00 :\n\
-         MOV_P @A_R6_Y += A_MD6, R08 /\n\
+	"MOVX_P @A_R6_X += A_MD6, R00 :\n\
+         MOVX_P @A_R6_Y += A_MD6, R08 /\n\
          MOV R00, A_R5 :\n\
          MOV R08, A_R5_MDFR;",
-	"MOV_P @A_R6_X_INC, R00 :\n\
-	 MOV_P @A_R6_Y_INC, R08 /\n\
+	"MOVX_P @A_R6_X_INC, R00 :\n\
+	 MOVX_P @A_R6_Y_INC, R08 /\n\
 	 NOP;",
 	/* Original A_R6/A_R6_MDFR. */
 	"MOVX:2 R00, @A_R7_X - 0x002 :\n\
          MOVX:2 R08, @A_R7_Y - 0x002;",
-	"MOV_P @A_R6_X += A_MD6, R00 :\n\
-         MOV_P @A_R6_Y += A_MD6, R08 /\n\
+	"MOVX_P @A_R6_X += A_MD6, R00 :\n\
+         MOVX_P @A_R6_Y += A_MD6, R08 /\n\
          MOV R00, A_R7 :\n\
          MOV R08, A_R7_MDFR;",
 	/* Timer register dump. */
-	"MOV_P @A_R6_X += A_MD6, R00 :\n\
-         MOV_P @A_R6_Y += A_MD6, R08 /\n\
+	"MOVX_P @A_R6_X += A_MD6, R00 :\n\
+         MOVX_P @A_R6_Y += A_MD6, R08 /\n\
          MOV R00, TIME0_PER_ENB :\n\
          MOV R08, TIME0_COUNTER;",
-	"MOV_P @A_R6_X += A_MD6, R00 :\n\
-         MOV_P @A_R6_Y += A_MD6, R08 /\n\
+	"MOVX_P @A_R6_X += A_MD6, R00 :\n\
+         MOVX_P @A_R6_Y += A_MD6, R08 /\n\
          MOV R00, TIME1_PER_ENB :\n\
          MOV R08, TIME1_COUNTER;",
-	"MOV_P @A_R6_X += A_MD6, R00 :\n\
-         MOV_P @A_R6_Y += A_MD6, R08 /\n\
+	"MOVX_P @A_R6_X += A_MD6, R00 :\n\
+         MOVX_P @A_R6_Y += A_MD6, R08 /\n\
          MOV R00, TIME2_PER_ENB :\n\
          MOV R08, TIME2_COUNTER;",
-	"MOV_P @A_R6_X += A_MD6, R00 :\n\
-         MOV_P @A_R6_Y += A_MD6, R08 /\n\
+	"MOVX_P @A_R6_X += A_MD6, R00 :\n\
+         MOVX_P @A_R6_Y += A_MD6, R08 /\n\
          MOV R00, TIME3_PER_ENB :\n\
          MOV R08, TIME3_COUNTER;",
 	/* Indirect address register value dump. Not really necessary. */
-	"MOV_P @A_R6_X += A_MD6, R00 :\n\
-         MOV_P @A_R6_Y += A_MD6, R08 /\n\
+	"MOVX_P @A_R6_X += A_MD6, R00 :\n\
+         MOVX_P @A_R6_Y += A_MD6, R08 /\n\
          MOV R00, @A_R0_X_REG :\n\
          MOV R08, @A_R0_Y_REG;",
-	"MOV_P @A_R6_X += A_MD6, R00 :\n\
-         MOV_P @A_R6_Y += A_MD6, R08 /\n\
+	"MOVX_P @A_R6_X += A_MD6, R00 :\n\
+         MOVX_P @A_R6_Y += A_MD6, R08 /\n\
          MOV R00, @A_R1_X_REG :\n\
          MOV R08, @A_R1_Y_REG;",
-	"MOV_P @A_R6_X += A_MD6, R00 :\n\
-         MOV_P @A_R6_Y += A_MD6, R08 /\n\
+	"MOVX_P @A_R6_X += A_MD6, R00 :\n\
+         MOVX_P @A_R6_Y += A_MD6, R08 /\n\
          MOV R00, @A_R2_X_REG :\n\
          MOV R08, @A_R2_Y_REG;",
-	"MOV_P @A_R6_X += A_MD6, R00 :\n\
-         MOV_P @A_R6_Y += A_MD6, R08 /\n\
+	"MOVX_P @A_R6_X += A_MD6, R00 :\n\
+         MOVX_P @A_R6_Y += A_MD6, R08 /\n\
          MOV R00, @A_R3_X_REG :\n\
          MOV R08, @A_R3_Y_REG;",
-	"MOV_P @A_R6_X += A_MD6, R00 :\n\
-         MOV_P @A_R6_Y += A_MD6, R08 /\n\
+	"MOVX_P @A_R6_X += A_MD6, R00 :\n\
+         MOVX_P @A_R6_Y += A_MD6, R08 /\n\
          MOV R00, @A_R4_X_REG :\n\
          MOV R08, @A_R4_Y_REG;",
-	"MOV_P @A_R6_X += A_MD6, R00 :\n\
-         MOV_P @A_R6_Y += A_MD6, R08 /\n\
+	"MOVX_P @A_R6_X += A_MD6, R00 :\n\
+         MOVX_P @A_R6_Y += A_MD6, R08 /\n\
          MOV R00, @A_R5_X_REG :\n\
          MOV R08, @A_R5_Y_REG;",
 	/*
@@ -241,51 +241,51 @@ static const char *reg_dump_func_start_asm[] = {
 	 * afterwards.
 	 */
 	"MOVX:1 R02, @A_R7_X - 0x02;",
-	"MOV_P @A_R6_X += A_MD6, R00 :\n\
-         MOV_P @A_R6_Y += A_MD6, R08 /\n\
+	"MOVX_P @A_R6_X += A_MD6, R00 :\n\
+         MOVX_P @A_R6_Y += A_MD6, R08 /\n\
          MOV R03, A_R0 :\n\
          MOV A_R0, R02;",
         "MOV R00, @A_R0_X_REG :\n\
          MOV R08, @A_R0_Y_REG;",
-	"MOV_P @A_R6_X_INC, R00 :\n\
-	 MOV_P @A_R6_Y_INC, R08 /\n\
+	"MOVX_P @A_R6_X_INC, R00 :\n\
+	 MOVX_P @A_R6_Y_INC, R08 /\n\
 	 MOV A_R0, R03;",
         "MOV R00, @A_R7_X_REG :\n\
          MOV R08, @A_R7_Y_REG;",
 	/* Dump A_Rx_BASE/A_Rx_LENG registers. Get original values for A_R6. */
-	"MOV_P @A_R6_X += A_MD6, R00 :\n\
-         MOV_P @A_R6_Y += A_MD6, R08 /\n\
+	"MOVX_P @A_R6_X += A_MD6, R00 :\n\
+         MOVX_P @A_R6_Y += A_MD6, R08 /\n\
          MOV R00, A_R0_BASE :\n\
          MOV R08, A_R1_BASE;",
-	"MOV_P @A_R6_X += A_MD6, R00 :\n\
-         MOV_P @A_R6_Y += A_MD6, R08 /\n\
+	"MOVX_P @A_R6_X += A_MD6, R00 :\n\
+         MOVX_P @A_R6_Y += A_MD6, R08 /\n\
          MOV R00, A_R2_BASE :\n\
          MOV R08, A_R3_BASE;",
-	"MOV_P @A_R6_X += A_MD6, R00 :\n\
-         MOV_P @A_R6_Y += A_MD6, R08 /\n\
+	"MOVX_P @A_R6_X += A_MD6, R00 :\n\
+         MOVX_P @A_R6_Y += A_MD6, R08 /\n\
          MOV R00, A_R4_BASE :\n\
          MOV R08, A_R5_BASE;",
-	"MOV_P @A_R6_X_INC, R00 :\n\
-	 MOV_P @A_R6_Y_INC, R08 /\n\
+	"MOVX_P @A_R6_X_INC, R00 :\n\
+	 MOVX_P @A_R6_Y_INC, R08 /\n\
 	 NOP;",
 	/* Get original A_R6_BASE. */
 	"MOVX:1 R00, @A_R7_X - 0x01;",
         "MOV R08, A_R7_BASE;",
 	/* Begin A_Rx_LENG register dump. */
-	"MOV_P @A_R6_X += A_MD6, R00 :\n\
-         MOV_P @A_R6_Y += A_MD6, R08 /\n\
+	"MOVX_P @A_R6_X += A_MD6, R00 :\n\
+         MOVX_P @A_R6_Y += A_MD6, R08 /\n\
          MOV R00, A_R0_LENG :\n\
          MOV R08, A_R1_LENG;",
-	"MOV_P @A_R6_X += A_MD6, R00 :\n\
-         MOV_P @A_R6_Y += A_MD6, R08 /\n\
+	"MOVX_P @A_R6_X += A_MD6, R00 :\n\
+         MOVX_P @A_R6_Y += A_MD6, R08 /\n\
          MOV R00, A_R2_LENG :\n\
          MOV R08, A_R3_LENG;",
-	"MOV_P @A_R6_X += A_MD6, R00 :\n\
-         MOV_P @A_R6_Y += A_MD6, R08 /\n\
+	"MOVX_P @A_R6_X += A_MD6, R00 :\n\
+         MOVX_P @A_R6_Y += A_MD6, R08 /\n\
          MOV R00, A_R4_LENG :\n\
          MOV R08, A_R5_LENG;",
-	"MOV_P @A_R6_X_INC, R00 :\n\
-	 MOV_P @A_R6_Y_INC, R08 /\n\
+	"MOVX_P @A_R6_X_INC, R00 :\n\
+	 MOVX_P @A_R6_Y_INC, R08 /\n\
 	 NOP;",
 	"MOVX:1 R00, @A_R7_Y - 0x01;",
         "MOV R08, A_R7_LENG;",
@@ -293,8 +293,8 @@ static const char *reg_dump_func_start_asm[] = {
 
 static const char *reg_dump_exit_asm[] = {
 	/* Push final values onto the A_R6 stack. */
-	"MOV_P @A_R6_X_INC, R00 :\n\
-	 MOV_P @A_R6_Y_INC, R08 /\n\
+	"MOVX_P @A_R6_X_INC, R00 :\n\
+	 MOVX_P @A_R6_Y_INC, R08 /\n\
 	 NOP;",
 	/* Restore A_R6_BASE/LENG register values. */
 	"MOVX:2 R00, @A_R7_X - 0x001 :\n\
@@ -347,8 +347,8 @@ static void add_reg_dump_strs(struct dsp_op_test_data *data, uint32_t cnt)
 static void create_reg_dump_asm_op(char *buf, uint32_t reg)
 {
 	sprintf(buf,
-"		 MOV_P @A_R6_X += A_MD6, R00 :\n\
-		 MOV_P @A_R6_Y += A_MD6, R08 /\n\
+"		 MOVX_P @A_R6_X += A_MD6, R00 :\n\
+		 MOVX_P @A_R6_Y += A_MD6, R08 /\n\
 		 MOV R00, %s :\n\
 		 MOV R08, %s; \n", get_dsp_operand_str(reg), get_dsp_operand_str(reg + 1));
 }
@@ -356,8 +356,8 @@ static void create_reg_dump_asm_op(char *buf, uint32_t reg)
 static void create_gpram_dump_asm_op(char *buf, uint32_t val)
 {
 	sprintf(buf,
-"		 MOV_P @A_R6_X += A_MD6, R00 :\n\
-		 MOV_P @A_R6_Y += A_MD6, R08 /\n\
+"		 MOVX_P @A_R6_X += A_MD6, R00 :\n\
+		 MOVX_P @A_R6_Y += A_MD6, R08 /\n\
 		 MOV R00, XGPRAM_%03d :\n\
 		 MOV R08, YGPRAM_%03d; \n", val, val);
 }
