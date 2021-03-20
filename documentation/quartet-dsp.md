@@ -1335,27 +1335,166 @@ Basic sign inversion instruction. Has float and integer version.
 
 
 ### Type Conversion
+The DSP has native instructions for converting between integers/floats and
+the LOG/EXP types from the emu10k1. I will explain the instructions for
+converting between each of these types below.
+
+#### Integer/Float Conversion
 These instructions convert values between integer and floating point representations.
 The formatting is a little bit odd though, as it uses `r = x y` representation. Register ranges
 are [here.](#r--x-y-register-ranges)
-
-#### I\_TO\_F:
-Takes two integer operands in x and y, and creates a floating point value in r. Example:
-
-`I_TO_F R00, R01, R02;`, r00 = (float)(r01 * (pow(2, r02))).
+These instructions allow for converting between floating point and integer
+representation of values. They both have the same basic formula, which is:
 
 
-If the x value is zero, the floating point exponent is still set.
+`X * (2 ^ Y)`
 
 
-#### F\_TO\_I:
-Takes a float value in x, an integer value in y, and creates an integer value in r. Example:
+The X operand is always expected to the the type we're converting from, and the Y
+operand is always a signed integer value. The result is always stored as the type
+we're converting to.
 
-`F_TO_I R00, R01, R02;`, r00 = (int)(r01 * (pow(2, r02))).
+A few examples:
+```
+R01 = 0x00000001;
+R02 = 0x00000003;
+I_TO_F R00, R01, R02; /* R00 = 0x41000000, or 8.0f. 1 * (2 ^ 3). */
+I_TO_F R00, R02, R01; /* R00 = 0x40c00000, or 6.0f. 2 * (2 ^ 1). */
+
+R01 = 0x40400000; /* Float 3.0f. */
+R02 = 0x00000004;
+F_TO_I R00, R01, R02; /* R00 = 0x00000030, or 48. 3 * (2 ^ 4). */
+
+R02 = 0xffffffff; /* -1. */
+F_TO_I R00, R01, R02; /* R00 = 0x00000001, or 1. 3 * (2 ^ -1). Results are always rounded down. */
+```
+
+|    Instruction   |                     Behavior                     |
+| ---------------- | ------------------------------------------------ |
+| I\_TO\_F         | Integer to float, `(float)((int)X * (2 ^ Y))`.   |
+| F\_TO\_I         | Float to integer, `(int)((float)X * (2 ^ Y))`.   |
 
 
-So, if the y value is 0, you get a straight float to int conversion. Otherwise, you get the floating
-point value in x multiplied by 2 to the power of y.
+#### LOG/EXP Conversion
+These instructions convert values from linear representation to logarithmic
+`(LOG)`, and to linear representation from logarithm `(EXP)`. These
+instructions behave the same as their emu10k1 counterparts, with logarithmic
+representation being a similar to floating point. I will try to
+explain how values are converted to/from this representation below.
+
+```
+A logarithmic value consists of three separate parts:
+
+- A sign bit. (1 bit)
+- An exponent. (Variable width, 2-5 bits.)
+- A mantissa. (Variable width, 29-26 bits depending on exponent width.)
+
+The LOG instruction takes four operands, in the form of:
+
+LOG R, X, Y, A;
+
+With:
+- R being the destination register.
+- X being the highest possible exponent value.
+- Y being a 'sign control' value, which will be explained later.
+- A being the value we're converting into logarithmic representation.
+
+EXP takes the same four arguments, with the difference being that 'A' should be
+in logarithmic representation for conversion back to it's linear value.
+
+Conversion works like this:
+First, we need to figure out how many bits are required to represent the
+maximum exponent value. Since the maximum is 5 bits, the highest possible
+value is 0x1f, 31. With the lowest being two bits, that means anything below
+0x04 defaults to 2-bits.
+
+So if,
+if (X & 0x10)
+	exp_bits = 5;
+else if (X & 0x08)
+	exp_bits = 4;
+else if (X & 0x04)
+	exp_bits = 3;
+else
+	exp_bits = 2;
+
+Once we've got this value, we can get the mantissa width by subtracting
+exp_bits from 30, the starting bit for the exponent. So:
+
+mantissa_bits = 30 - exp_bits.
+
+The next step is to check the sign of the value we intend to convert. If the
+value is negative, we invert all the bits. This is technically incorrect,
+since a signed integer is two's complement and this is only one's complement,
+but it's how it works. So:
+
+if (A & 0x80000000)
+	A = ~A;
+
+Now, starting at our highest exponent value, X, we'll continually shift our A
+value left until either we end up with an exponent of 0, or our shifted value
+has the MSB set. A bitshift to the left is equivalent to multiplying by (2 ^ 1),
+which is the inverse of log2. Pseudocode:
+
+/* A is the linear value, X is the maximum exponent. */
+while (!(A & 0x80000000)) {
+	A <<= 1;
+	X--;
+
+	/* If our exponent value is zero, break. */
+	if (!X)
+		break;
+}
+
+/*
+ * If our exponent isn't 0, we must have broken the while loop due
+ * to the MSB being set. In this case, shift left one more time to
+ * account for the implicit bit. This is similar behavior to floating point.
+ */
+if (X) {
+	A <<= 1;
+	X--;
+}
+
+We then pack the mantissa and exponent values along with the sign into a single
+value like this:
+
+value = (X << (31 - exp_bits)) | (A >> (30 - exp_bits));
+/* If the initial linear value was negative, set the sign bit. */
+if (sign)
+	value |= 0x80000000;
+
+Finally, handle the 'sign control' value, Y.
+
+/*
+          |----------------|----------|---------|
+          | Sign Control   | sign=0   | sign=1  |
+          |----------------|----------|---------|
+          |    00          |  result  | ~result |
+          |----------------|----------|---------|
+          |    01          |  result  | result  |
+          |----------------|----------|---------|
+          |    10          | ~result  | ~result |
+          |----------------|----------|---------|
+          |    11          | ~result  |  result |
+          |----------------|----------|---------|
+*/
+
+The EXP instruction behaves in the inverse, extract the exponent and mantissa,
+if the exponent is greater than 0, restore the implicit bit, bitshift right by (max_exp - exp),
+and then do the sign control modification.
+
+```
+That was a pretty lengthy explanation, hopefully it did a good job of explaining it.
+This instruction was really more useful on the emu10k1, which lacked floating point
+hardware. There is also a program in the documentation folder which does these conversions.
+
+
+|    Instruction   |                     Behavior                     |
+| ---------------- | ------------------------------------------------ |
+|    LOG           | Convert linear data to logarithmic form.         |
+|    EXP           | Convert logarithmic data to linear form.         |
+
 
 ### Value Comparison
 The value comparison instructions for both integer and floating point are essentially a
