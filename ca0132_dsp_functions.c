@@ -1086,7 +1086,7 @@ static const op_operand_layout operand_layouts[] = {
 		     .operand_dir     = OPERAND_DIR_DST, },
 		   { .part1_bit_start = 9,
 		     .part1_bits      = 5,
-		     .operand_type    = OP_OPERAND_LITERAL_8,
+		     .operand_type    = OP_OPERAND_C_STK_5,
 		     .operand_dir     = OPERAND_DIR_SRC, } },
 	       .bitmask = { 0x00000000, 0x00000000, 0x00000000, 0x00000000, } } },
 	  .loc_layout_cnt = 1, },
@@ -1578,7 +1578,7 @@ static const op_operand_layout operand_layouts[] = {
 		     .operand_dir     = OPERAND_DIR_DST, },
 		   { .part1_bit_start = 28,
 		     .part1_bits      = 11,
-		     .operand_type    = OP_OPERAND_LITERAL_11,
+		     .operand_type    = OP_OPERAND_C_STK_11,
 		     .operand_dir     = OPERAND_DIR_SRC, } },
 	       .supports_opt_args = 1,
 	       .bitmask = { 0x00000000, 0x00000000, 0x00000000, 0x00000000, } } },
@@ -4785,6 +4785,23 @@ static uint32_t check_operand_compatibility(dsp_asm_op_data *op_data,
 
 		break;
 
+	case OP_OPERAND_C_STK_5:
+		if (operand->type != OPERAND_TYPE_STACK)
+			break;
+
+		if (operand->val < 0x10)
+			ret = 1;
+
+		break;
+
+	case OP_OPERAND_C_STK_11:
+		if (operand->type != OPERAND_TYPE_STACK)
+			break;
+
+		ret = 1;
+
+		break;
+
 	case OP_OPERAND_NOP:
 		if (operand->type != OPERAND_TYPE_NOP)
 			break;
@@ -5387,6 +5404,30 @@ static uint32_t get_operand_val_from_token(dsp_asm_op_operand *operand)
 		operand->val |= 0x600;
 		operand->type = OPERAND_TYPE_REG;
 		return 1;
+	}
+
+	if (!strncmp(operand_str, "C_STK", 5)) {
+		operand->type = OPERAND_TYPE_STACK;
+
+		if (!strncmp(&operand_str[5], "_TOP", 4)) {
+			operand->val = 0x20;
+			/* With modifier bit. */
+			if (strlen(operand_str) > 9)
+				operand->val |= 0x40;
+
+			return 1;
+		}
+
+		if (!strncmp(&operand_str[5], "_BASE +", 7)) {
+			operand->val = strtol(&operand_str[12], NULL, 0);
+			return 1;
+		}
+
+		if (!strncmp(&operand_str[5], "_BASE_MD +", 10)) {
+			operand->val = strtol(&operand_str[15], NULL, 0);
+			operand->val |= 0x080;
+			return 1;
+		}
 	}
 
 	if (operand_str[0] == '@')

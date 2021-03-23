@@ -573,6 +573,29 @@ static void print_operand_str(dsp_main *data, operand_data *operand, uint8_t fin
 
 		reg_str = buf;
 		break;
+
+	case OP_OPERAND_C_STK_5:
+		sprintf(buf, "C_STK_BASE + %d", operand->operand_val);
+		reg_str = buf;
+
+		break;
+
+	case OP_OPERAND_C_STK_11:
+		if (operand->operand_val & 0x020) {
+			if (operand->operand_val & 0x040)
+				sprintf(buf, "C_STK_TOP_MD");
+			else
+				sprintf(buf, "C_STK_TOP");
+		} else {
+			if (operand->operand_val & 0x080)
+				sprintf(buf, "C_STK_BASE_MD + %d", operand->operand_val & 0x1f);
+			else
+				sprintf(buf, "C_STK_BASE + %d", operand->operand_val & 0x1f);
+		}
+
+		reg_str = buf;
+		break;
+
 	case OP_OPERAND_NOP:
 		/*
 		sprintf(buf, "NO_ARGS");
