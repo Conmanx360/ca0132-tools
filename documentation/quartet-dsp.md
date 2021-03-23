@@ -669,6 +669,57 @@ X or Y RAM can be selected. For dual data path reads, data path 1 must be XRAM, 
 
 [Operand register ranges here.](#movx-a_reg-offset-register-ranges)
 
+### Register-Stack Move:
+There are two instructions, PUSH/POP, for moving data between the call stack and registers.
+These instructions only handle the CALL stack, the two other internal stacks, the loop and
+status stacks, can only be read by modifying their respective stack pointer registers and
+then reading the stack data registers.
+
+The call stack has 16 total entries, which are stored in their own internal registers.
+The call stack pointer, `PC_STK_PTR`, is split into two parts, the upper 16-bits represent
+the base address of the call stack, and the lower 16 represent the current offset.
+
+When the current offset is 4 entries away from the base, i.e the base is `0x00` and the offset
+is `0x0c`, interrupt 0 is triggered. This also increments `XGPRAM_000` by 8. I believe this
+is meant to be used as a way to save the stack before a potential overflow, i.e `XGPRAM_000`
+would contain an address in RAM, and when the interrupt occurs, would store the last 8 call
+stack entries in RAM to preserve them. This might be similar to the ADSP 219x's high/low level
+stack flag interrupt.
+
+Length 1 POP/PUSH instructions can POP/PUSH any offset from the stack, i.e:
+
+```
+PC_STK_PTR = 0x0007000a;
+
+POP R00, C_STK_BASE + 1;
+```
+
+Would pop entry 0x08 in the stack.
+
+Length 2 PUSH/POP instructions allow for incrementing/decrementing the base and offset
+stack pointers. Take note that when PUSHing/POPing the base registers, the default
+behavior is reversed. I.E pushing to the base register decrements it, and popping
+from the base register increments it. This is the opposite behavior of the current
+pointer value.
+
+
+```
+PC_STK_PTR = 0x0007000a;
+POP:2 R00, C_STK_BASE_MD + 0;
+```
+
+This op ends with `PC_STK_PTR` having it's base address incremented to 8 rather than
+decremented to 7.
+
+To POP/PUSH the current top of the stack, use:
+
+```
+POP:2 R00, C_STK_TOP; /* Just pop. */
+POP:2 R00, C_STK_TOP_MD; /* Pop and decrement. */
+PUSH:2 C_STK_TOP, R00; /* Just push. */
+PUSH:2 C_STK_TOP_MD, R00; /* Push and increment. */
+```
+
 
 ## Bit Manipulation Instructions:
 
